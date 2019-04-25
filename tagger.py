@@ -1,7 +1,10 @@
 import requests
 import urllib.parse
-
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC, error
 from typing import Dict, List, Any, Optional
+from pathlib import Path
+import os
 
 BASE_URL = "https://vgmdb.info"
 SEARCH_URL = f"{BASE_URL}/search"
@@ -66,9 +69,29 @@ def query_vgmdb(query: str) -> Dict[str, str]:
 	}
 
 
-def tag_song():
+def construct_query():
 	pass
 
 
+def tag_song(path: Path, song: str):
+	audio = MP3(str(path / song), ID3=ID3)    
+	query: str = os.path.splitext(song)[0]
+	meta: Dict[str, str] = query_vgmdb(query)
+	audio.tags.add(
+	    APIC(
+	        encoding=3, # 3 is for utf-8
+	        mime='image/jpg', # image/jpeg or image/png
+	        type=3, # 3 is for the cover image
+	        desc=u'Cover',
+	        data=requests.get(meta["Album Art"]).content
+	    )
+	)
+
+	audio.save()
+
 if __name__=="__main__":
-	print(query_vgmdb("Isekai Quartet"))
+	# print(query_vgmdb("アイシテル"))
+	path = Path("/home/samyak/music_test")
+	files = os.listdir(str(path))
+	for file in files:
+		tag_song(path, file)
