@@ -33,8 +33,19 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 	album_art: Optional[str] = None
 
 
-	query_without_punc_list = [re.sub('[%s]' % re.escape(string.punctuation), ' ', query) for query in query_list]
-	parsed_query_list = [urllib.parse.quote(query) for query in query_without_punc_list]
+	def filter_criteria(query: str) -> bool:
+		tokens: List[str] = query.split(" ")
+		return not all(len(token)<3 for token in tokens)
+
+	def remove_empty(query: str) -> str:
+		tokens: List[str] = query.split(" ")
+		return ' '.join([token for token in tokens if len(token)>0])
+
+	filtered_query_list = [remove_empty(query) for query in query_list if filter_criteria(query)]
+	parsed_query_list = [urllib.parse.quote(query) for query in query_list]
+
+	if len(parsed_query_list)==0:
+		return None
 
 
 	tasks = []
@@ -122,15 +133,16 @@ def get_all_possible_substrings(query: str, length: int) -> List[str]:
 	return substrings
 
 def construct_query(query: str) -> Optional[Dict[str, Optional[str]]]:
-	longest_query: List[str] = [query]
+	query_without_punc = re.sub('[%s]' % re.escape(string.punctuation), ' ', query)
+	longest_query: List[str] = [query_without_punc]
 
-	for length in tqdm(range(len(query)-1, 1, -1)):
+	for length in tqdm(range(len(query_without_punc)-1, 1, -1)):
 		result = asyncio.run(query_vgmdb(longest_query))
 
 		if result is not None:
 			return result
 
-		longest_query = get_all_possible_substrings(query, length)
+		longest_query = get_all_possible_substrings(query_without_punc, length)
 
 	return None
 
@@ -151,15 +163,18 @@ def tag_song(path: Path, song: str):
 			print(f"Cannot tag file {song}")
 			return
 
-	if SM(None, metadata["Name"], title) > 0.5:
+	assert metadata["Name"] is not None and title is not None
+	if SM(None, metadata["Name"], title).ratio() > 0.5:
 		audiofile.tag.title = metadata["Name"]
 
-	if audiofile.tag.artists is None or SM(None, metadata["Artists"], audiofile.tag.artists) > 0.5:
+	if audiofile.tag.artists is None or SM(None, metadata["Artists"], audiofile.tag.artists).ratio() > 0.5:
 		audiofile.tag.artists = metadata["Artists"]
 
 
 	os.makedirs("~/albums", exist_ok=True)
 	img_path: str = f"~/albums/{audiofile.tag.title}"
+
+	assert metadata["Album Art"] is not None
 	subprocess.run(["curl", metadata["Album Art"], ">", img_path])
 	subprocess.run(["lame", "--ti", img_path, str(path / song)])
 
@@ -177,7 +192,6 @@ def tag_song(path: Path, song: str):
 if __name__=="__main__":
 	path = Path("/home/samyak/music_test")
 	files = os.listdir(str(path))
-	file_names = [os.path.splitext(file_name)[0] for file_name in files]
-	for file_name in file_names:
+	for file_name in files:
 		print(f"{file_name} is being processed")
 		tag_song(path, file_name)
