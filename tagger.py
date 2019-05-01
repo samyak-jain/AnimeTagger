@@ -1,78 +1,100 @@
 import requests
+from aiohttp import ClientSession
 import urllib.parse
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import os
 from tqdm import tqdm
+import string
+import re
 
 BASE_URL = "https://vgmdb.info"
 SEARCH_URL = f"{BASE_URL}/search"
 
-def query_vgmdb(query: str) -> Optional[Dict[str, Optional[str]]]:
+async def fetch(url, session):
+	async with session.get(url) as response:
+		return await response.json()
+
+async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]]]:
 	song_name: Optional[str] = None
 	artists: Optional[str] = None
 	album_art: Optional[str] = None
 
-	parsed_query: str = urllib.parse.quote(query)
-	search_result: Dict[str, Any] = requests.get(f"{SEARCH_URL}/{parsed_query}?format=json").json()
-	albums: List[Dict[str, Any]] = search_result["results"]["albums"]
+	parsed_query_list = [urllib.parse.quote(query) for query in query_list]
+	query_without_punc_list = [re.sub('[%s]' % re.escape(string.punctuation), ' ', parsed_query) for parsed_query in parsed_query_list]
 
-	for album in albums:
-		album_code: str = album["link"]
-		album_details: Dict[str, Any] = requests.get(f"{BASE_URL}/{album_code}?format=json").json()
-		album_art = album_details["picture_full"]
+	tasks = []
+	async with ClientSession() as session:
+		for query_without_punc in query_without_punc_list:
+			task = asyncio.ensure_future(fetch(f"{SEARCH_URL}/{query_without_punc}?format=json", sessoin))
+			tasks.append(task)
 
-		# Ignore albums with no album art or track listings
+		response_list = await asyncio.gather(*tasks)
 
-		assert album_art is not None
-		if "nocover" in album_art or len(album_details["discs"]) == 0:
-			continue
+	print(response_list)
+	search_result_list = [response.json() for response in response_list]
 
-		track_names: List[Dict[str, Any]] = [track["names"] for track in album_details["discs"][0]["tracks"]]
+	for search_result in search_result_list:
+		albums: List[Dict[str, Any]] = search_result["results"]["albums"]
 
-		# If english name exists, make that the song name
-		romaji_existed: bool = False
-		for track in track_names:
-			romaji_name: Optional[str] = track.get("Romaji")
-			
-			if romaji_name is not None:
-				romaji_existed = True
-				song_name = romaji_name
-				break
+		for album in albums:
+			album_code: str = album["link"]
+			album_details: Dict[str, Any] = requests.get(f"{BASE_URL}/{album_code}?format=json").json()
+			album_art = album_details["picture_full"]
 
-		# Else make the japanese name as the title of the song
-		if not romaji_existed:
-			song_name = track_names[0]["Japanese"]
+			# Ignore albums with no album art or track listings
+
+			assert album_art is not None
+			if "nocover" in album_art or len(album_details["discs"]) == 0:
+				continue
+
+			track_names: List[Dict[str, Any]] = [track["names"] for track in album_details["discs"][0]["tracks"]]
+
+			# If english name exists, make that the song name
+			romaji_existed: bool = False
+			for track in track_names:
+				romaji_name: Optional[str] = track.get("Romaji")
+
+				if romaji_name is not None:
+					romaji_existed = True
+					song_name = romaji_name
+					break
+
+			# Else make the japanese name as the title of the song
+			if not romaji_existed:
+				song_name = track_names[0]["Japanese"]
 
 
-		performers: List[Dict[str, Any]] = album_details["performers"]
-		artist_list: List[str] = []
+			performers: List[Dict[str, Any]] = album_details["performers"]
+			artist_list: List[str] = []
 
-		for performer in performers:
-			names: Dict[str, str] = performer["names"]
-			english_name: Optional[str] = names.get("en")
+			for performer in performers:
+				names: Dict[str, str] = performer["names"]
+				english_name: Optional[str] = names.get("en")
 
-			name: str
-			# Add japanese name if there is no english name for the artist
-			if english_name is None:
-				name = names["ja"]
-			else:
-				name = english_name
+				name: str
+				# Add japanese name if there is no english name for the artist
+				if english_name is None:
+					name = names["ja"]
+				else:
+					name = english_name
 
-			artist_list.append(name)
+				artist_list.append(name)
 
-		artists = ", ".join(artist_list)
+			artists = ", ".join(artist_list)
 
-		break
+			break
 
-	if (song_name is None) or (artists is None) or (album_art is None):
-		return None
+		if (song_name is None) or (artists is None) or (album_art is None):
+			return None
 
-	return {
-		"Name": song_name,
-		"Artists": artists,
-		"Album Art": album_art
-	}
+		return {
+			"Name": song_name,
+			"Artists": artists,
+			"Album Art": album_art
+		}
+
+	return None
 
 def get_all_possible_substrings(query: str, length: int) -> List[str]:
 	substrings: List[str] = []
@@ -88,11 +110,14 @@ def construct_query(query: str) -> Optional[Tuple[str, Optional[Dict[str, Option
 	longest_query: List[str] = [query]
 
 	for length in tqdm(range(len(query)-1, 1, -1)):
-		for index, long_query in enumerate(longest_query):
+		#for index, long_query in enumerate(longest_query):
+		#	result: Optional[Dict[str, Optional[str]]] = query_vgmdb(long_query)
+		#	if result is not None:
+		#	return long_query, result
 
-			result: Optional[Dict[str, Optional[str]]] = query_vgmdb(long_query)
-			if result is not None:
-				return long_query, result
+		loop = asyncio.get_event_loop()
+		future = asyncio.ensure_future(query_vgmdb(longest_query))
+		loop.run_until_complete(future)
 
 		longest_query = get_all_possible_substrings(query, length)
 		print(longest_query)
