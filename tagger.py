@@ -1,7 +1,7 @@
-from tenacity import retry
+from tenacity import retry, stop_after_attempt
 import requests
 import asyncio
-from aiohttp import ClientSession
+from aiohttp import ClientSession, client_exceptions
 import urllib.parse
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
@@ -13,30 +13,41 @@ import re
 BASE_URL = "https://vgmdb.info"
 SEARCH_URL = f"{BASE_URL}/search"
 
-@retry
+@retry(stop=stop_after_attempt(2))
 async def fetch(url, session):
-	async with session.get(url) as response:
-		return await response.json()
+	try:
+		async with session.get(url) as response:
+			return await response.json()
+	except client_exceptions.ContentTypeError as exception:
+		print(f"Bad Url: {url}")
+		print(exception)
+
+		return None
 
 async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]]]:
 	song_name: Optional[str] = None
 	artists: Optional[str] = None
 	album_art: Optional[str] = None
 
-	parsed_query_list = [urllib.parse.quote(query) for query in query_list]
-	query_without_punc_list = [re.sub('[%s]' % re.escape(string.punctuation), ' ', parsed_query) for parsed_query in parsed_query_list]
+
+	query_without_punc_list = [re.sub('[%s]' % re.escape(string.punctuation), ' ', query) for query in query_list]
+	parsed_query_list = [urllib.parse.quote(query) for query in query_without_punc_list]
+
 
 	tasks = []
 	async with ClientSession() as session:
-		for query_without_punc in query_without_punc_list:
-			task = asyncio.ensure_future(fetch(f"{SEARCH_URL}/{query_without_punc}?format=json", session))
+		for query in parsed_query_list:
+			task = asyncio.create_task(fetch(f"{SEARCH_URL}/{query}?format=json", session))
 			tasks.append(task)
 
 		response_list = await asyncio.gather(*tasks)
 
-#	print(response_list)
 
 	for search_result in response_list:
+
+		if search_result is None:
+			continue
+	
 		albums: List[Dict[str, Any]] = search_result["results"]["albums"]
 
 		for album in albums:
@@ -45,7 +56,6 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 			album_art = album_details["picture_full"]
 
 			# Ignore albums with no album art or track listings
-
 			assert album_art is not None
 			if "nocover" in album_art or len(album_details["discs"]) == 0:
 				continue
@@ -108,42 +118,30 @@ def get_all_possible_substrings(query: str, length: int) -> List[str]:
 
 	return substrings
 
-def construct_query(query: str) -> Optional[Tuple[str, Optional[Dict[str, Optional[str]]]]]:
+def construct_query(query: str) -> Optional[Dict[str, Optional[str]]]:
 	longest_query: List[str] = [query]
 
 	for length in tqdm(range(len(query)-1, 1, -1)):
-		#for index, long_query in enumerate(longest_query):
-		#	result: Optional[Dict[str, Optional[str]]] = query_vgmdb(long_query)
-		#	if result is not None:
-		#	return long_query, result
+		result = asyncio.run(query_vgmdb(longest_query))
 
-		loop = asyncio.get_event_loop()
-		future = asyncio.ensure_future(query_vgmdb(longest_query))
-		loop.run_until_complete(future)
+		if result is not None:
+			return result
 
 		longest_query = get_all_possible_substrings(query, length)
-		print(longest_query)
 
 	return None
-
-
-
-
 
 
 def tag_song(path: Path, song: str):
 	pass
 
 if __name__=="__main__":
-#	print(query_vgmdb("アイシテル"))
 	path = Path("/home/samyak/music_test")
 	files = os.listdir(str(path))
 	file_names = [os.path.splitext(file_name)[0] for file_name in files]
-	print(file_names)
 	for file_name in file_names:
 		result = construct_query(file_name)
 		if result is None:
 			print(f"Attempt at tagging {file_name} failed")
 		else:
-			print(f"Tagging successfull. The resultant query is {result[0]}")
-			print(f"And the result is {result[1]}")
+			print(f"Tagging successfull. The result is {result}")
