@@ -1,3 +1,6 @@
+import subprocess
+from difflib import SequenceMatcher as SM
+import eyed3
 from tenacity import retry, stop_after_attempt
 import requests
 import asyncio
@@ -133,15 +136,48 @@ def construct_query(query: str) -> Optional[Dict[str, Optional[str]]]:
 
 
 def tag_song(path: Path, song: str):
-	pass
+	audiofile = eyed3.load(str(path / song))
+
+	# Check if metadata already exists
+	title = audiofile.tag.title
+	if title is not None:
+		metadata = construct_query(title)
+
+	if title is None or metadata is None:
+		file_name = os.path.splitext(song)[0]
+		metadata = construct_query(file_name)
+
+		if metadata is None:
+			print(f"Cannot tag file {song}")
+			return
+
+	if SM(None, metadata["Name"], title) > 0.5:
+		audiofile.tag.title = metadata["Name"]
+
+	if audiofile.tag.artists is None or SM(None, metadata["Artists"], audiofile.tag.artists) > 0.5:
+		audiofile.tag.artists = metadata["Artists"]
+
+
+	os.makedirs("~/albums", exist_ok=True)
+	img_path: str = f"~/albums/{audiofile.tag.title}"
+	subprocess.run(["curl", metadata["Album Art"], ">", img_path])
+	subprocess.run(["lame", "--ti", img_path, str(path / song)])
+
+
+	# Rename the file so that it matches the title
+	os.rename(path / song, path / f"{audiofile.tag.title}.mp3")
+
+	print(f"{song} will now have the metadata: {metadata}")
+
+
+
+
+
 
 if __name__=="__main__":
 	path = Path("/home/samyak/music_test")
 	files = os.listdir(str(path))
 	file_names = [os.path.splitext(file_name)[0] for file_name in files]
 	for file_name in file_names:
-		result = construct_query(file_name)
-		if result is None:
-			print(f"Attempt at tagging {file_name} failed")
-		else:
-			print(f"Tagging successfull. The result is {result}")
+		print(f"{file_name} is being processed")
+		tag_song(path, file_name)
