@@ -1,4 +1,6 @@
+from tenacity import retry
 import requests
+import asyncio
 from aiohttp import ClientSession
 import urllib.parse
 from typing import Dict, List, Any, Optional, Tuple
@@ -11,6 +13,7 @@ import re
 BASE_URL = "https://vgmdb.info"
 SEARCH_URL = f"{BASE_URL}/search"
 
+@retry
 async def fetch(url, session):
 	async with session.get(url) as response:
 		return await response.json()
@@ -26,15 +29,14 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 	tasks = []
 	async with ClientSession() as session:
 		for query_without_punc in query_without_punc_list:
-			task = asyncio.ensure_future(fetch(f"{SEARCH_URL}/{query_without_punc}?format=json", sessoin))
+			task = asyncio.ensure_future(fetch(f"{SEARCH_URL}/{query_without_punc}?format=json", session))
 			tasks.append(task)
 
 		response_list = await asyncio.gather(*tasks)
 
-	print(response_list)
-	search_result_list = [response.json() for response in response_list]
+#	print(response_list)
 
-	for search_result in search_result_list:
+	for search_result in response_list:
 		albums: List[Dict[str, Any]] = search_result["results"]["albums"]
 
 		for album in albums:
