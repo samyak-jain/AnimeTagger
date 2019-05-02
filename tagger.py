@@ -27,7 +27,7 @@ async def fetch(url, session):
 
 		return None
 
-async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]]]:
+async def query_vgmdb(query_list: List[List[str]]) -> Optional[Dict[str, Optional[str]]]:
 	song_name: Optional[str] = None
 	artists: Optional[str] = None
 	album_art: Optional[str] = None
@@ -41,8 +41,9 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 		tokens: List[str] = query.split(" ")
 		return ' '.join([token for token in tokens if len(token)>0])
 
-	filtered_query_list = [remove_empty(query) for query in query_list if filter_criteria(query)]
-	parsed_query_list = [urllib.parse.quote(query) for query in query_list]
+	concatednated_query_list: List[str] = [' '.join(query) for query in query_list]
+	filtered_query_list: List[str] = [remove_empty(query) for query in concatednated_query_list if filter_criteria(query)]
+	parsed_query_list: List[str] = [urllib.parse.quote(query) for query in filtered_query_list]
 
 	if len(parsed_query_list)==0:
 		return None
@@ -64,6 +65,9 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 	
 		albums: List[Dict[str, Any]] = search_result["results"]["albums"]
 
+		if len(albums) < 1:
+			continue
+
 		for album in albums:
 			album_code: str = album["link"]
 			album_details: Dict[str, Any] = requests.get(f"{BASE_URL}/{album_code}?format=json").json()
@@ -84,6 +88,20 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 				if romaji_name is not None:
 					romaji_existed = True
 					song_name = romaji_name
+					break
+
+				english_name: Optional[str] = track.get("English")
+
+				if english_name is not None:
+					romaji_existed = True
+					song_name = english_name
+					break
+
+				english_name: Optional[str] = track.get("English")
+
+				if english_name is not None:
+					romaji_existed = True
+					song_name = english_name
 					break
 
 			# Else make the japanese name as the title of the song
@@ -122,27 +140,31 @@ async def query_vgmdb(query_list: List[str]) -> Optional[Dict[str, Optional[str]
 
 	return None
 
-def get_all_possible_substrings(query: str, length: int) -> List[str]:
-	substrings: List[str] = []
+def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
+	subs: List[List[str]] = []
 	query_length: int = len(query)
 
 	assert query_length >= length
 	for start_index in range(query_length - length):
-		substrings.append(query[start_index:start_index+length])
+		subs.append(query[start_index:start_index+length])
 
-	return substrings
+	return subs
 
 def construct_query(query: str) -> Optional[Dict[str, Optional[str]]]:
-	query_without_punc = re.sub('[%s]' % re.escape(string.punctuation), ' ', query)
-	longest_query: List[str] = [query_without_punc]
+	query_without_punc: str = re.sub('[%s]' % re.escape(string.punctuation), ' ', query)
+	filtered_query: List[str] = [token for token in query_without_punc.split(" ") if len(token)>0]
+	sorted_query: List[str] = sorted(filtered_query, key=len, reverse=True)
+	longest_query: List[List[str]] = [sorted_query]
+	initial_length: int = len(sorted_query)
 
-	for length in tqdm(range(len(query_without_punc)-1, 1, -1)):
+
+	for length in tqdm(range(initial_length-1, -1, -1)):
 		result = asyncio.run(query_vgmdb(longest_query))
 
 		if result is not None:
 			return result
 
-		longest_query = get_all_possible_substrings(query_without_punc, length)
+		longest_query = get_all_possible_subs(sorted_query, length)
 
 	return None
 
@@ -164,12 +186,9 @@ def tag_song(path: Path, song: str):
 			return
 
 	assert metadata["Name"] is not None and title is not None
-	if SM(None, metadata["Name"], title).ratio() > 0.5:
-		audiofile.tag.title = metadata["Name"]
 
-	if audiofile.tag.artists is None or SM(None, metadata["Artists"], audiofile.tag.artists).ratio() > 0.5:
-		audiofile.tag.artists = metadata["Artists"]
-
+	audiofile.tag.title = metadata["Name"]
+	audiofile.tag.artists = metadata["Artists"]
 
 	os.makedirs("~/albums", exist_ok=True)
 	img_path: str = f"~/albums/{audiofile.tag.title}"
