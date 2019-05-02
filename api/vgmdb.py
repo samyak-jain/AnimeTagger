@@ -1,4 +1,5 @@
 import asyncio
+import urllib.parse
 from asyncio import Task
 from typing import List, Optional, Dict, Any, Tuple
 
@@ -15,14 +16,16 @@ class VGMDB(API):
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
-    def album(self, response_list: List[Optional[Dict[str, Any]]]) -> \
-            Tuple[Optional[str], Optional[str], Optional[str]]:
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
+            Tuple[int, Optional[str], Optional[str], Optional[str]]:
 
         song_name: Optional[str] = None
         artists: Optional[str] = None
         album_art: Optional[str] = None
+        index: int = -1
 
         for search_result in response_list:
+            index += 1
             if search_result is None:
                 continue
 
@@ -83,4 +86,7 @@ class VGMDB(API):
 
                 break
 
-        return song_name, artists, album_art
+        return index, song_name, artists, album_art
+
+    def url_encode(self, url: str) -> str:
+        return urllib.parse.quote(url)

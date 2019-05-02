@@ -24,5 +24,10 @@ class API(ABC):
         pass
 
     @abstractmethod
-    def album(self, response_list: List[Optional[Dict[str, Any]]]) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
+            Tuple[int, Optional[str], Optional[str], Optional[str]]:
+        pass
+
+    @abstractmethod
+    def url_encode(self, url: str) -> str:
         pass
