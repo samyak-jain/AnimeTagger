@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, List
+from asyncio import Task
+from typing import Optional, Dict, Any, List, Tuple
 
 from aiohttp import ClientSession, client_exceptions
 from tenacity import stop_after_attempt, retry
@@ -19,9 +20,9 @@ class API(ABC):
             return None
 
     @abstractmethod
-    def query(self, user_query: str, session: ClientSession):
+    def query(self, user_query: str, session: ClientSession) -> Task:
         pass
 
     @abstractmethod
-    def album(self, album_code: List[Optional[Dict[str, Any]]]):
+    def album(self, response_list: List[Optional[Dict[str, Any]]]) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         pass

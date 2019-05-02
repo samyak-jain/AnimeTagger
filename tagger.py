@@ -12,15 +12,17 @@ from typing import Dict, List, Any, Optional, Union
 
 import eyed3
 from aiohttp import ClientSession
+from dotenv import load_dotenv
 from eyed3.id3 import TagFile
 from eyed3.mp3 import Mp3AudioFile
 from tqdm import tqdm
 
 from api import API
+from api.genius import GENIUS
 from api.vgmdb import VGMDB
 
 ALBUM_DIR = "~/albums"
-API_LIST: List[API] = [VGMDB()]
+API_LIST: List[API] = [VGMDB(), GENIUS()]
 
 
 async def query_vgmdb(query_list: List[List[str]], query_api: API) -> Optional[Dict[str, Optional[str]]]:
@@ -146,6 +148,7 @@ def tag_song(path: Path, song: str):
 
 
 if __name__ == "__main__":
+    load_dotenv()
     path_name: Union[Path, Any] = Path("/home/samyak/music_test")
 
     assert isinstance(path_name, Path)

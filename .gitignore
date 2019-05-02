@@ -1,2 +1,4 @@
 .mypy*
 .idea
+.env
+__pycache__

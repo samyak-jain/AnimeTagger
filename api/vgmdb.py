@@ -1,5 +1,6 @@
 import asyncio
-from typing import List, Optional, Dict, Any
+from asyncio import Task
+from typing import List, Optional, Dict, Any, Tuple
 
 import requests
 from aiohttp import ClientSession
@@ -11,10 +12,12 @@ class VGMDB(API):
         self.BASE_URL = "https://vgmdb.info"
         self.SEARCH_URL = f"{self.BASE_URL}/search"
 
-    def query(self, user_query: str, session: ClientSession):
+    def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
-    def album(self, response_list: List[Optional[Dict[str, Any]]]):
+    def album(self, response_list: List[Optional[Dict[str, Any]]]) -> \
+            Tuple[Optional[str], Optional[str], Optional[str]]:
+
         song_name: Optional[str] = None
         artists: Optional[str] = None
         album_art: Optional[str] = None
