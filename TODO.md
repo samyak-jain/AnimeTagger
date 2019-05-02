@@ -1,0 +1,8 @@
+- Support Genius API
+- Create stopwords list
+- Add continuos integration
+- Suppress lame output
+- Add logging
+- Build API for CRUD
+- Implement Video fetching
+- Implement google drive integration

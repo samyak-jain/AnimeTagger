@@ -1,3 +1,4 @@
+from shutil import rmtree
 import subprocess
 from difflib import SequenceMatcher as SM
 import eyed3
@@ -6,6 +7,7 @@ import requests
 import asyncio
 from aiohttp import ClientSession, client_exceptions
 import urllib.parse
+import urllib.request
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import os
@@ -15,6 +17,7 @@ import re
 
 BASE_URL = "https://vgmdb.info"
 SEARCH_URL = f"{BASE_URL}/search"
+ALBUM_DIR = "~/albums"
 
 @retry(stop=stop_after_attempt(2))
 async def fetch(url, session):
@@ -185,27 +188,26 @@ def tag_song(path: Path, song: str):
 			print(f"Cannot tag file {song}")
 			return
 
-	assert metadata["Name"] is not None and title is not None
+	assert metadata["Name"] is not None
 
 	audiofile.tag.title = metadata["Name"]
 	audiofile.tag.artists = metadata["Artists"]
 
-	os.makedirs("~/albums", exist_ok=True)
-	img_path: str = f"~/albums/{audiofile.tag.title}"
+	os.makedirs(ALBUM_DIR, exist_ok=True)
+	img_path: str = f"{ALBUM_DIR}/{audiofile.tag.title}"
 
 	assert metadata["Album Art"] is not None
-	subprocess.run(["curl", metadata["Album Art"], ">", img_path])
+	urllib.request.urlretrieve(metadata["Album Art"], img_path)
 	subprocess.run(["lame", "--ti", img_path, str(path / song)])
-
+	rmtree(ALBUM_DIR)
 
 	# Rename the file so that it matches the title
-	os.rename(path / song, path / f"{audiofile.tag.title}.mp3")
+	os.rename(path / f"{song}.mp3", path / f"{audiofile.tag.title}.mp3")
+
+	# Remove the old file
+	os.remove(path / song)
 
 	print(f"{song} will now have the metadata: {metadata}")
-
-
-
-
 
 
 if __name__=="__main__":
