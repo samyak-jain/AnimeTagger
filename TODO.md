@@ -6,3 +6,4 @@
 - Implement Video fetching
 - Implement google drive integration
 - Support album names
+- Add fingerprinting
