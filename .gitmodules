@@ -1,0 +1,3 @@
+[submodule "AudioTagger"]
+	path = AudioTagger
+	url = ../AudioTagger
