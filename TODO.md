@@ -1,4 +1,3 @@
-- Support Genius API
 - Create stopwords list
 - Add continuos integration
 - Suppress lame output
@@ -6,3 +5,4 @@
 - Build API for CRUD
 - Implement Video fetching
 - Implement google drive integration
+- Support album names
