@@ -1,10 +1,6 @@
 import asyncio
-import math
 import os
-import re
-import string
 import subprocess
-import urllib.request
 from asyncio.tasks import Task
 from pathlib import Path
 from shutil import rmtree
@@ -20,6 +16,8 @@ from tqdm import tqdm
 from api import API
 from api.genius import GENIUS
 from api.vgmdb import VGMDB
+from utils.clean_text import clean_string, remove_slashes
+from utils.image_handler import download_image
 
 ALBUM_DIR = "albums"
 
@@ -51,11 +49,8 @@ async def query_databases(initial_query: str, query_list: List[List[str]], query
 
         response_list: List[Optional[Dict[str, Any]]] = await asyncio.gather(*tasks)
 
-        index, song_name, artists, album_art = query_api.album([response_list[0]], initial_query)
+        index, song_name, artists, album_art = query_api.album(response_list, initial_query)
         query_length: int = len(parsed_query_list[index])
-
-        # print(query_api)
-        # print(index, song_name, artists, album_art)
 
         if (song_name is None) or (artists is None) or (album_art is None):
             return None
@@ -79,20 +74,18 @@ def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
 
 
 def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]:
-    query_without_punc: str = re.sub('[%s]' % re.escape(string.punctuation), ' ', query)
-    filtered_query: List[str] = [token.lower() for token in query_without_punc.split(" ") if len(token) > 0]
+    cleaned_query: str = clean_string(query)
+    filtered_query: List[str] = [token for token in cleaned_query.split(" ") if len(token) > 0]
 
     longest_query: List[List[str]] = [filtered_query]
     initial_length: int = len(filtered_query)
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
-        print(longest_query)
         query_lengths: List[Union[int, float]] = [-1]*len(api_list)
         results: List[Optional[Dict[str, str]]] = []
 
         for pos, api_tag in enumerate(api_list):
             async_result = asyncio.run(query_databases(query, longest_query, api_tag))
-            # print(async_result)
 
             if async_result is not None:
                 query_len, result = async_result
@@ -114,9 +107,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]
 
             return query_lengths[element]
 
-        # print(query_lengths)
-        # print(results)
-        max_index: int = min(range(len(query_lengths)), key=max_criteria)
+        max_index: int = max(range(len(query_lengths)), key=max_criteria)
         final_result: Optional[Dict[str, str]] = results[max_index]
 
         if final_result is not None:
@@ -157,18 +148,15 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     audio_file.tag.artists = metadata["Artists"]
 
     os.makedirs(ALBUM_DIR, exist_ok=True)
-    img_path: str = f"{ALBUM_DIR}/{audio_file.tag.title}"
+    img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
 
     assert metadata["Album Art"] is not None
-    urllib.request.urlretrieve(metadata["Album Art"], img_path)
+    download_image(metadata["Album Art"], img_path)
     subprocess.run(["lame", "--ti", img_path, str(path / song)])
     rmtree(ALBUM_DIR)
 
     # Rename the file so that it matches the title
-    os.rename(str(path / f"{song}.mp3"), str(path / f"{audio_file.tag.title}.mp3"))
-
-    # Remove the old file
-    os.remove(str(path / song))
+    os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
     print(f"{song} will now have the metadata: {metadata}")
 

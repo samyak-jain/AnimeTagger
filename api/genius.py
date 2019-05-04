@@ -2,11 +2,12 @@ import asyncio
 import urllib.parse
 from asyncio import Task
 from typing import Any, Dict, Optional, List, Tuple
-from difflib import SequenceMatcher as SM
+from difflib import SequenceMatcher
 
 from aiohttp import ClientSession
 
 from api import API
+from utils.clean_text import clean_string
 
 
 class GENIUS(API):
@@ -17,7 +18,6 @@ class GENIUS(API):
         self.SEARCH_URL = f"{self.BASE_URL}/search?access_token={token}"
 
     def query(self, user_query: str, session: ClientSession) -> Task:
-        # print(f"{self.SEARCH_URL}?q={user_query}")
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}&q={user_query}", session))
 
     def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
@@ -31,8 +31,6 @@ class GENIUS(API):
 
         for response in response_list:
             index += 1
-
-            # print(response)
 
             # Check for empty response
             if response is None:
@@ -58,29 +56,30 @@ class GENIUS(API):
                     song_name = song_result["title"]
 
                     assert song_name is not None
-                    similarity = SM(None, song_name, initial_query).ratio()
+                    cleaned_song_name: str = clean_string(song_name)
+                    cleaned_query: str = clean_string(initial_query)
+                    similarity = SequenceMatcher(None, cleaned_song_name, cleaned_query).ratio()
+
+                    if similarity < 0.5:
+                        continue
 
                 if song_result.get("primary_artist") is not None and \
                         song_result["primary_artist"].get("name") is not None:
                     artists = song_result["primary_artist"]["name"]
 
+                    if 'genius' in clean_string(artists):
+                        continue
+
                 if song_result.get("header_image_url") is not None:
                     album_art = song_result["header_image_url"]
-
-                # print(song_name, artists, album_art)
 
                 if song_name is not None and artists is not None and album_art is not None and similarity is not None:
                     results.append((similarity, index, song_name, artists, album_art))
 
-        print(results)
-
         if len(results) < 1:
             return 0, None, None, None
 
-        # print(results)
-
         final_result = max(results, key=lambda element: element[0])
-
         return final_result[1:]
 
     def url_encode(self, url: str) -> str:
