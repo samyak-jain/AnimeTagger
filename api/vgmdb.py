@@ -6,6 +6,7 @@ from typing import List, Optional, Dict, Any, Tuple
 import requests
 from aiohttp import ClientSession
 from api import API
+from models import Song
 
 
 class VGMDB(API):
@@ -17,11 +18,12 @@ class VGMDB(API):
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
     def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
-            Tuple[int, Optional[str], Optional[str], Optional[str]]:
+            Tuple[int, Optional[Song]]:
 
         song_name: Optional[str] = None
         artists: Optional[str] = None
         album_art: Optional[str] = None
+        album_name: Optional[str] = None
         index: int = -1
 
         for search_result in response_list:
@@ -38,6 +40,10 @@ class VGMDB(API):
                 album_code: str = album["link"]
                 album_details: Dict[str, Any] = requests.get(f"{self.BASE_URL}/{album_code}?format=json").json()
                 album_art = album_details["picture_full"]
+                album_name = album_details["name"]
+
+                if album_name is None:
+                    continue
 
                 # Ignore albums with no album art or track listings
                 assert album_art is not None and len(album_art) > 0 and album_details["discs"] is not None
@@ -86,7 +92,10 @@ class VGMDB(API):
 
                 break
 
-        return index, song_name, artists, album_art
+        if song_name is None or artists is None or album_name is None:
+            return 0, None
+
+        return index, Song(song_name=song_name, artists=artists, album_art=album_art, album_name=album_name)
 
     def url_encode(self, url: str) -> str:
         return urllib.parse.quote(url)

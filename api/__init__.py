@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, List, Tuple
 
 from aiohttp import ClientSession, client_exceptions
 from tenacity import stop_after_attempt, retry
+from models import Song
 
 
 class API(ABC):
@@ -25,7 +26,7 @@ class API(ABC):
 
     @abstractmethod
     def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
-            Tuple[int, Optional[str], Optional[str], Optional[str]]:
+            Tuple[int, Optional[Song]]:
         pass
 
     @abstractmethod

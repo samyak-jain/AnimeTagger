@@ -13,6 +13,7 @@ aiohttp = "^3.5"
 tqdm = "^4.31"
 eyed3 = "^0.8.10"
 python-dotenv = "^0.10.1"
+pydantic = "^0.24.0"
 
 [tool.poetry.dev-dependencies]
 
