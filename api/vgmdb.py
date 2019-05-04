@@ -17,9 +17,7 @@ class VGMDB(API):
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
-    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> \
-            Tuple[int, Optional[Song]]:
-
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> Tuple[int, Optional[Song]]:
         song_name: Optional[str] = None
         artists: Optional[str] = None
         album_art: Optional[str] = None

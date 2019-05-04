@@ -19,6 +19,7 @@ from api.genius import GENIUS
 from api.vgmdb import VGMDB
 from utils.clean_text import clean_string, remove_slashes
 from utils.image_handler import download_image
+from models import Song
 
 ALBUM_DIR = "albums"
 
