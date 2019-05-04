@@ -25,6 +25,9 @@ class VGMDB(API):
         index: int = -1
 
         for search_result in response_list:
+
+            # print("Search Results:")
+            # print(search_result)
             index += 1
             if search_result is None:
                 continue

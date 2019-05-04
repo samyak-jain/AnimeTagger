@@ -24,7 +24,9 @@ from api.vgmdb import VGMDB
 ALBUM_DIR = "albums"
 
 
-async def query_vgmdb(initial_query: str, query_list: List[List[str]], query_api: API) -> Optional[Tuple[int, Dict[str, str]]]:
+async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API) \
+        -> Optional[Tuple[int, Dict[str, str]]]:
+
     def filter_criteria(query: str) -> bool:
         tokens: List[str] = query.split(" ")
         return not all(len(token) < 3 for token in tokens)
@@ -49,12 +51,16 @@ async def query_vgmdb(initial_query: str, query_list: List[List[str]], query_api
 
         response_list: List[Optional[Dict[str, Any]]] = await asyncio.gather(*tasks)
 
-        index, song_name, artists, album_art = query_api.album(response_list, initial_query)
+        index, song_name, artists, album_art = query_api.album([response_list[0]], initial_query)
+        query_length: int = len(parsed_query_list[index])
+
+        # print(query_api)
+        # print(index, song_name, artists, album_art)
 
         if (song_name is None) or (artists is None) or (album_art is None):
             return None
 
-        return index, {
+        return query_length, {
             "Name": song_name,
             "Artists": artists,
             "Album Art": album_art
@@ -76,46 +82,42 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]
     query_without_punc: str = re.sub('[%s]' % re.escape(string.punctuation), ' ', query)
     filtered_query: List[str] = [token.lower() for token in query_without_punc.split(" ") if len(token) > 0]
 
-    def sort_criteria(element: Optional[str]) -> int:
-        assert element is not None
-        return len(element)
-
-    sorted_query: List[str] = sorted(filtered_query, key=sort_criteria, reverse=True)
-    longest_query: List[List[str]] = [sorted_query]
-    initial_length: int = len(sorted_query)
+    longest_query: List[List[str]] = [filtered_query]
+    initial_length: int = len(filtered_query)
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
         print(longest_query)
-        indices: List[Union[int, float]] = [math.inf]*len(api_list)
+        query_lengths: List[Union[int, float]] = [-1]*len(api_list)
         results: List[Optional[Dict[str, str]]] = []
 
         for pos, api_tag in enumerate(api_list):
-            async_result = asyncio.run(query_vgmdb(query, longest_query, api_tag))
+            async_result = asyncio.run(query_databases(query, longest_query, api_tag))
+            # print(async_result)
 
             if async_result is not None:
-                index, result = async_result
+                query_len, result = async_result
                 results.append(result)
 
                 if result is not None:
-                    indices[pos] = index
+                    query_lengths[pos] = query_len
             else:
                 results.append(None)
 
-        longest_query = get_all_possible_subs(sorted_query, length)
+        longest_query = get_all_possible_subs(filtered_query, length)
 
-        if all(math.isinf(index) for index in indices):
+        if all(element == -1 for element in query_lengths):
             continue
 
-        def min_criteria(element: Optional[int]) -> Union[int, float]:
+        def max_criteria(element: Optional[int]) -> Union[int, float]:
             if element is None:
-                return math.inf
+                return -1
 
-            return indices[element]
+            return query_lengths[element]
 
-        print(indices)
-        print(results)
-        min_index: int = min(range(len(indices)), key=min_criteria)
-        final_result: Optional[Dict[str, str]] = results[min_index]
+        # print(query_lengths)
+        # print(results)
+        max_index: int = min(range(len(query_lengths)), key=max_criteria)
+        final_result: Optional[Dict[str, str]] = results[max_index]
 
         if final_result is not None:
             return final_result

@@ -31,6 +31,7 @@ class GENIUS(API):
 
         for response in response_list:
             index += 1
+
             # print(response)
 
             # Check for empty response
@@ -48,25 +49,35 @@ class GENIUS(API):
             for song in response["response"]["hits"]:
                 similarity: Optional[float] = None
 
-                if song.get("title") is not None:
-                    song_name = song["title"]
+                if song.get("result") is None:
+                    continue
+
+                song_result: Dict[str, Any] = song["result"]
+
+                if song_result.get("title") is not None:
+                    song_name = song_result["title"]
 
                     assert song_name is not None
                     similarity = SM(None, song_name, initial_query).ratio()
 
-                if song.get("primary_artist") is not None and song["primary_artist"].get("name") is not None:
-                    artists = song["primary_artist"]["name"]
+                if song_result.get("primary_artist") is not None and \
+                        song_result["primary_artist"].get("name") is not None:
+                    artists = song_result["primary_artist"]["name"]
 
-                if song.get("result") is not None and song["result"].get("header_image_url") is not None:
-                    album_art = song["result"]["header_image_url"]
+                if song_result.get("header_image_url") is not None:
+                    album_art = song_result["header_image_url"]
+
+                # print(song_name, artists, album_art)
 
                 if song_name is not None and artists is not None and album_art is not None and similarity is not None:
                     results.append((similarity, index, song_name, artists, album_art))
 
-        if len(results) < 1:
-            return -1, None, None, None
-
         print(results)
+
+        if len(results) < 1:
+            return 0, None, None, None
+
+        # print(results)
 
         final_result = max(results, key=lambda element: element[0])
 

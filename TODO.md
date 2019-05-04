@@ -7,3 +7,4 @@
 - Implement google drive integration
 - Support album names
 - Add fingerprinting
+- New sorting algorithm
