@@ -5,5 +5,5 @@
 - Build API for CRUD
 - Implement Video fetching
 - Implement google drive integration
-- Support album names
-- Add fingerprinting
+- Add model in main file
+- Integrate fingerprinting
