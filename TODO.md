@@ -7,4 +7,4 @@
 - Implement google drive integration
 - Support album names
 - Add fingerprinting
-- New sorting algorithm
+- To clean text of result and then do sequence matching
