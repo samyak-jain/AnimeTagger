@@ -7,6 +7,7 @@ from shutil import rmtree
 from typing import Dict, List, Any, Optional, Union, Tuple
 
 import eyed3
+import glob
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 from eyed3.id3 import TagFile
@@ -157,6 +158,10 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 
     # Rename the file so that it matches the title
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
+
+    # Remove old files
+    for file_to_remove in glob.glob(str(path_name) + "/*.mp3.mp3"):
+        os.remove(file_to_remove)
 
     print(f"{song} will now have the metadata: {metadata}")
 
