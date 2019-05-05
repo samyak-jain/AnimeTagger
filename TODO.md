@@ -5,6 +5,5 @@
 - Build API for CRUD
 - Implement Video fetching
 - Implement google drive integration
-- Integrate fingerprinting
 - Add Documentation
 - Write DockerFile

@@ -18,7 +18,7 @@ class ACOUSTID:
 
         max_score = max(results, key=lambda element: element['score'])
 
-        if max_score['score'] < 50:
+        if max_score['score'] < 0.5:
             return None
 
         return max_score

@@ -57,5 +57,5 @@ def aidmatch(filename, API_KEY):
     return x
 
 
-# if __name__ == '__main__':
-    # print(aidmatch(sys.argv[1]))
+if __name__ == '__main__':
+    print(aidmatch(*sys.argv[1:]))

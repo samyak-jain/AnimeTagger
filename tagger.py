@@ -19,6 +19,7 @@ from api.genius import GENIUS
 from api.vgmdb import VGMDB
 from utils.clean_text import clean_string, remove_slashes
 from utils.image_handler import download_image
+from api.acoustid import ACOUSTID
 from models import Song
 
 ALBUM_DIR = "albums"
@@ -126,8 +127,24 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     metadata: Optional[Song] = None
     title: Optional[str] = audio_file.tag.title
 
+    # Use acoustid to get details
+    acoust_api_key: str = os.getenv("AC_KEY")
+    fingerprint: ACOUSTID = ACOUSTID(path / song, acoust_api_key)
+    fingerprint_result: Optional[Dict[str, Union[str, float]]] = fingerprint.inference()
+    fingerprint_success: bool = False
+    fingerprint_title: Optional[str] = None
+    fingerprint_artist: Optional[str] = None
+
+    if fingerprint_result is not None:
+        fingerprint_success = True
+        fingerprint_title = fingerprint_result["title"]
+        fingerprint_artist = fingerprint_result["artist"]
+
+    if fingerprint_title is not None:
+        metadata = construct_query(fingerprint_title, api_list)
+
     # Check if metadata already exists
-    if title is not None:
+    if metadata is None and title is not None:
         metadata = construct_query(title, api_list)
 
     if title is None or metadata is None:
@@ -144,8 +161,15 @@ def tag_song(path: Path, song: str, api_list: List[API]):
             return
 
     assert metadata is not None
-    audio_file.tag.title = metadata.song_name
-    audio_file.tag.artists = metadata.artists
+    if fingerprint_success:
+        assert fingerprint_artist is not None and fingerprint_title is not None
+        audio_file.tag.title = fingerprint_title
+        audio_file.tag.artists = fingerprint_artist
+    else:
+        audio_file.tag.title = metadata.song_name
+        audio_file.tag.artists = metadata.artists
+
+    audio_file.tag.album = metadata.album_name
 
     os.makedirs(ALBUM_DIR, exist_ok=True)
     img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
@@ -162,7 +186,13 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     for file_to_remove in glob.glob(str(path_name) + "/*.mp3.mp3"):
         os.remove(file_to_remove)
 
-    print(f"{song} will now have the metadata: {metadata}")
+    final_metadata: Dict[str, Optional[str]] = {
+        'song': audio_file.tag.title,
+        'album': audio_file.tag.album,
+        'artist': audio_file.tag.artists,
+        'album art': metadata.album_art
+    }
+    print(f"{song} will now have the metadata: {final_metadata}")
 
 
 if __name__ == "__main__":
