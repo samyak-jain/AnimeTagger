@@ -68,7 +68,7 @@ class GENIUS(API):
                             album_name = api_result["response"]["song"]["album"]["name"]
                         else:
                             continue
-                    except KeyError:
+                    except (KeyError, TypeError):
                         continue
 
                 if song_result.get("title") is not None:

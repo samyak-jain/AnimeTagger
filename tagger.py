@@ -25,7 +25,7 @@ ALBUM_DIR = "albums"
 
 
 async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API) \
-        -> Optional[Tuple[int, Dict[str, str]]]:
+        -> Optional[Tuple[int, Optional[Song]]]:
 
     def filter_criteria(query: str) -> bool:
         tokens: List[str] = query.split(" ")
@@ -51,17 +51,16 @@ async def query_databases(initial_query: str, query_list: List[List[str]], query
 
         response_list: List[Optional[Dict[str, Any]]] = await asyncio.gather(*tasks)
 
-        index, song_name, artists, album_art = query_api.album(response_list, initial_query)
+        index, song = query_api.album(response_list, initial_query)
         query_length: int = len(parsed_query_list[index])
 
-        if (song_name is None) or (artists is None) or (album_art is None):
+        if song is None:
             return None
 
-        return query_length, {
-            "Name": song_name,
-            "Artists": artists,
-            "Album Art": album_art
-        }
+        if (song.song_name is None) or (song.artists is None) or (song.album_name is None):
+            return None
+
+        return query_length, song
 
 
 def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
@@ -75,7 +74,7 @@ def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
     return subs
 
 
-def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]:
+def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     cleaned_query: str = clean_string(query)
     filtered_query: List[str] = [token for token in cleaned_query.split(" ") if len(token) > 0]
 
@@ -84,7 +83,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
         query_lengths: List[Union[int, float]] = [-1]*len(api_list)
-        results: List[Optional[Dict[str, str]]] = []
+        results: List[Optional[Song]] = []
 
         for pos, api_tag in enumerate(api_list):
             async_result = asyncio.run(query_databases(query, longest_query, api_tag))
@@ -110,7 +109,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Dict[str, str]]
             return query_lengths[element]
 
         max_index: int = max(range(len(query_lengths)), key=max_criteria)
-        final_result: Optional[Dict[str, str]] = results[max_index]
+        final_result: Optional[Song] = results[max_index]
 
         if final_result is not None:
             return final_result
@@ -124,7 +123,7 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     if isinstance(audio_file, TagFile):
         raise TypeError("Invalid Data Format")
 
-    metadata: Optional[Dict[str, Optional[str]]] = None
+    metadata: Optional[Song] = None
     title: Optional[str] = audio_file.tag.title
 
     # Check if metadata already exists
@@ -144,18 +143,17 @@ def tag_song(path: Path, song: str, api_list: List[API]):
             print(f"Cannot tag file {song}")
             return
 
-    assert metadata["Name"] is not None
-
-    audio_file.tag.title = metadata["Name"]
-    audio_file.tag.artists = metadata["Artists"]
+    assert metadata is not None
+    audio_file.tag.title = metadata.song_name
+    audio_file.tag.artists = metadata.artists
 
     os.makedirs(ALBUM_DIR, exist_ok=True)
     img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
 
-    assert metadata["Album Art"] is not None
-    download_image(metadata["Album Art"], img_path)
-    subprocess.run(["lame", "--ti", img_path, str(path / song)])
-    rmtree(ALBUM_DIR)
+    if metadata.album_art is not None:
+        download_image(metadata.album_art, img_path)
+        subprocess.run(["lame", "--ti", img_path, str(path / song)])
+        rmtree(ALBUM_DIR)
 
     # Rename the file so that it matches the title
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
