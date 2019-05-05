@@ -1,4 +1,0 @@
-[submodule "AudioTagger"]
-	path = AudioTagger
-	url = https://github.com/samyak-jain/AudioTagger
-	branch = master

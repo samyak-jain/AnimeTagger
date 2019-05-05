@@ -1,7 +1,8 @@
 from pathlib import Path
 import urllib.parse
-from typing import Dict
+from typing import Dict, List
 
+import execnet
 import requests
 from requests import Response
 
@@ -10,6 +11,10 @@ class ACOUSTID:
     def __init__(self, path: Path, server_url: str):
         self.song_path = path
         self.server_url = server_url
+
+    def call_python(self, module: str, function: str, args: List[str]):
+        gw = execnet.makegateway("popen//python=python2.7")
+
 
     def inference(self):
         absolute_path: str = str(self.song_path.absolute())
