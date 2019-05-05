@@ -176,7 +176,11 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 
     if metadata.album_art is not None:
         download_image(metadata.album_art, img_path)
-        subprocess.run(["lame", "--ti", img_path, str(path / song)])
+
+        # To suppress output of lame command
+        with open(os.devnull, 'wb') as DEVNULL:
+            subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=DEVNULL, stderr=subprocess.STDOUT)
+            
         rmtree(ALBUM_DIR)
 
     # Rename the file so that it matches the title
