@@ -5,5 +5,4 @@
 - Build API for CRUD
 - Implement Video fetching
 - Implement google drive integration
-- Add model in main file
 - Integrate fingerprinting
