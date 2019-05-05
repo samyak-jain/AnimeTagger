@@ -18,14 +18,10 @@ command line.
 """
 import acoustid
 import sys
-import os
-from dotenv import load_dotenv
 
 # API key for this demo script only. Get your own API key at the
 # Acoustid Web for your application.
 # http://acoustid.org/
-load_dotenv()
-API_KEY = os.getenv("AC_KEY")
 
 
 # Python 2/3 Unicode compatibility: this `print_` function forces a
@@ -41,7 +37,7 @@ else:
         print(s)
 
 
-def aidmatch(filename):
+def aidmatch(filename, API_KEY):
     try:
         results = acoustid.match(API_KEY, filename)
     except acoustid.NoBackendError:
@@ -61,5 +57,5 @@ def aidmatch(filename):
     return x
 
 
-if __name__ == '__main__':
-    print(aidmatch(sys.argv[1]))
+# if __name__ == '__main__':
+    # print(aidmatch(sys.argv[1]))

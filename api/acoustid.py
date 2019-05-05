@@ -1,30 +1,24 @@
 from pathlib import Path
-import urllib.parse
-from typing import Dict, List
+from typing import Dict, Optional, Union
 
-import execnet
-import requests
-from requests import Response
+from utils.aidmatch import aidmatch
 
 
 class ACOUSTID:
-    def __init__(self, path: Path, server_url: str):
+    def __init__(self, path: Path, api_key: str):
         self.song_path = path
-        self.server_url = server_url
+        self.api_key = api_key
 
-    def call_python(self, module: str, function: str, args: List[str]):
-        gw = execnet.makegateway("popen//python=python2.7")
-
-
-    def inference(self):
+    def inference(self) -> Optional[Dict[str, Union[str, float]]]:
         absolute_path: str = str(self.song_path.absolute())
-        encoded_path: str = urllib.parse.quote(absolute_path)
+        results = aidmatch(absolute_path, self.api_key)
 
-        response: Response = requests.get(f"{self.server_url}/tag/{encoded_path}")
-
-        if response.status_code != 200:
-            print("There was some kind of error")
-            print(f"Error: {response.status_code}")
+        if len(results) < 1:
             return None
 
-        acoust: Dict[str, str] = response.json()
+        max_score = max(results, key=lambda element: element['score'])
+
+        if max_score['score'] < 50:
+            return None
+
+        return max_score
