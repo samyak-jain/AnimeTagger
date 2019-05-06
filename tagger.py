@@ -26,8 +26,8 @@ from utils.text_processing import clean_string, remove_slashes, detect_language
 ALBUM_DIR = "albums"
 
 
-async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API) \
-        -> Optional[Tuple[int, Optional[Song]]]:
+async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API, best_similarity: float) \
+        -> Optional[Tuple[float, Optional[Song]]]:
 
     def filter_criteria(query: str) -> bool:
         tokens: List[str] = query.split(" ")
@@ -53,8 +53,7 @@ async def query_databases(initial_query: str, query_list: List[List[str]], query
 
         response_list: List[Optional[Dict[str, Any]]] = await asyncio.gather(*tasks)
 
-        index, song = query_api.album(response_list, initial_query)
-        query_length: int = len(parsed_query_list[index])
+        similarity, song = query_api.album(response_list, initial_query, best_similarity)
 
         if song is None:
             return None
@@ -62,7 +61,10 @@ async def query_databases(initial_query: str, query_list: List[List[str]], query
         if (song.song_name is None) or (song.artists is None) or (song.album_name is None):
             return None
 
-        return query_length, song
+        if similarity > best_similarity:
+            return similarity, song
+
+        return best_similarity, None
 
 
 def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
@@ -82,41 +84,27 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
 
     longest_query: List[List[str]] = [filtered_query]
     initial_length: int = len(filtered_query)
+    best_similarity: float = -1
+    best_result: Optional[Song] = None
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
-        query_lengths: List[Union[int, float]] = [-1]*len(api_list)
-        results: List[Optional[Song]] = []
-
         for pos, api_tag in enumerate(api_list):
-            async_result = asyncio.run(query_databases(query, longest_query, api_tag))
+            async_result = asyncio.run(query_databases(query, longest_query, api_tag, best_similarity))
 
             if async_result is not None:
-                query_len, result = async_result
-                results.append(result)
+                current_sim, result = async_result
 
                 if result is not None:
-                    query_lengths[pos] = query_len
-            else:
-                results.append(None)
+                    if current_sim > best_similarity:
+                        best_result = result
+
+                    best_similarity = current_sim
+                    if best_similarity > 0.8:
+                        return best_result
 
         longest_query = get_all_possible_subs(filtered_query, length)
 
-        if all(element == -1 for element in query_lengths):
-            continue
-
-        def max_criteria(element: Optional[int]) -> Union[int, float]:
-            if element is None:
-                return -1
-
-            return query_lengths[element]
-
-        max_index: int = max(range(len(query_lengths)), key=max_criteria)
-        final_result: Optional[Song] = results[max_index]
-
-        if final_result is not None:
-            return final_result
-
-    return None
+    return best_result
 
 
 def tag_song(path: Path, song: str, api_list: List[API]):
@@ -147,7 +135,7 @@ def tag_song(path: Path, song: str, api_list: List[API]):
         fingerprint_title = fingerprint_result["title"]
         fingerprint_artist = fingerprint_result["artist"]
 
-    possibilities: List[Optional[str]] = []
+    possibilities: List[Optional[str]] = [fingerprint_title]
     title_lang: Optional[int] = detect_language(title)
     name_lang: Optional[int] = detect_language(file_name)
 

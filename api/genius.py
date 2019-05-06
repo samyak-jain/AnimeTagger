@@ -2,14 +2,13 @@ import asyncio
 import urllib.parse
 from asyncio import Task
 from typing import Any, Dict, Optional, List, Tuple
-from difflib import SequenceMatcher
 
 import requests
 from aiohttp import ClientSession
 
 from api import API
 from models import Song
-from utils.text_processing import clean_string
+from utils.text_processing import clean_string, calculate_difference
 
 
 class GENIUS(API):
@@ -23,13 +22,15 @@ class GENIUS(API):
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}&q={user_query}", session))
 
-    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> Tuple[int, Optional[Song]]:
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str, best_similarity: float) \
+            -> Tuple[float, Optional[Song]]:
+
         song_name: Optional[str] = None
         artists: Optional[str] = None
         album_art: Optional[str] = None
         album_name: Optional[str] = None
         index: int = -1
-        results: List[Tuple[float, int, Optional[str], Optional[str], Optional[str]]] = []
+        results: List[Tuple[float, Optional[str], Optional[str], Optional[str]]] = []
 
         for response in response_list:
             index += 1
@@ -75,11 +76,10 @@ class GENIUS(API):
                     song_name = song_result["title"]
 
                     assert song_name is not None
-                    cleaned_song_name: str = clean_string(song_name)
-                    cleaned_query: str = clean_string(initial_query)
-                    similarity = SequenceMatcher(None, cleaned_song_name, cleaned_query).ratio()
+                    similarity = calculate_difference(song_name, initial_query)
 
-                    if similarity < 0.5:
+                    assert similarity is not None
+                    if similarity < best_similarity:
                         continue
 
                 if song_result.get("primary_artist") is not None and \
@@ -93,14 +93,14 @@ class GENIUS(API):
                     album_art = song_result["header_image_url"]
 
                 if song_name is not None and artists is not None and album_art is not None and similarity is not None:
-                    results.append((similarity, index, song_name, artists, album_art))
+                    results.append((similarity, song_name, artists, album_art))
 
         if len(results) < 1:
             return 0, None
 
         final_result = max(results, key=lambda element: element[0])
-        final_song_name, final_artists, final_album_art = final_result[2:]
-        return final_result[1], Song(song_name=final_song_name, artists=final_artists, album_art=final_album_art,
+        final_song_name, final_artists, final_album_art = final_result[1:]
+        return final_result[0], Song(song_name=final_song_name, artists=final_artists, album_art=final_album_art,
                                      album_name=album_name)
 
     def url_encode(self, url: str) -> str:

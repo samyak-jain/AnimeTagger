@@ -25,7 +25,8 @@ class API(ABC):
         pass
 
     @abstractmethod
-    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> Tuple[int, Optional[Song]]:
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str, best_similarity: float) \
+            -> Tuple[float, Optional[Song]]:
         pass
 
     @abstractmethod

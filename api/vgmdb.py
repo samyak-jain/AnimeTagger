@@ -8,6 +8,8 @@ from aiohttp import ClientSession
 from api import API
 from models import Song
 
+from utils.text_processing import calculate_difference
+
 
 class VGMDB(API):
     def __init__(self):
@@ -17,12 +19,14 @@ class VGMDB(API):
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
-    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str) -> Tuple[int, Optional[Song]]:
+    def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str, best_similarity: float) \
+            -> Tuple[float, Optional[Song]]:
+
         song_name: Optional[str] = None
         artists: Optional[str] = None
-        album_art: Optional[str] = None
         album_name: Optional[str] = None
         index: int = -1
+        best_song: Optional[Song] = None
 
         for search_result in response_list:
             index += 1
@@ -88,12 +92,15 @@ class VGMDB(API):
 
                 artists = ", ".join(artist_list)
 
-                break
+                current_similarity: float = calculate_difference(song_name, initial_query)
+                if current_similarity > best_similarity:
+                    best_song = Song(song_name=song_name, artists=artists, album_art=album_art, album_name=album_name)
+                    best_similarity = current_similarity
 
         if song_name is None or artists is None or album_name is None:
-            return 0, None
+            return best_similarity, None
 
-        return index, Song(song_name=song_name, artists=artists, album_art=album_art, album_name=album_name)
+        return best_similarity, best_song
 
     def url_encode(self, url: str) -> str:
         return urllib.parse.quote(url)
