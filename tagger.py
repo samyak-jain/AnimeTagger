@@ -1,6 +1,7 @@
 import asyncio
 import os
 import subprocess
+import sys
 from asyncio.tasks import Task
 from pathlib import Path
 from shutil import rmtree
@@ -83,6 +84,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     initial_length: int = len(filtered_query)
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
+        print(longest_query)
         query_lengths: List[Union[int, float]] = [-1]*len(api_list)
         results: List[Optional[Song]] = []
 
@@ -201,7 +203,8 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 
 if __name__ == "__main__":
     load_dotenv()
-    path_name: Union[Path, Any] = Path("/home/samyak/music_test")
+    # path_name: Union[Path, Any] = Path("/home/samyak/music_test")
+    path_name: Union[Path, Any] = Path(sys.argv[1])
     API_LIST: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
 
     assert isinstance(path_name, Path)

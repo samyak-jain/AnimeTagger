@@ -15,6 +15,9 @@ eyed3 = "^0.8.10"
 python-dotenv = "^0.10.1"
 pydantic = "^0.24.0"
 youtube-dl = "^2019.4"
+pyicu = "^2.3"
+polyglot = "^16.7"
+pycld2 = "^0.31.0"
 
 [tool.poetry.dev-dependencies]
 
