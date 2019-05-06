@@ -9,7 +9,7 @@ from aiohttp import ClientSession
 
 from api import API
 from models import Song
-from utils.clean_text import clean_string
+from utils.text_processing import clean_string
 
 
 class GENIUS(API):

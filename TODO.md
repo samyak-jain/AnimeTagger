@@ -1,4 +1,3 @@
-- Create stopwords list
 - Add continuos integration
 - Add logging
 - Build API for CRUD
@@ -8,5 +7,4 @@
 - Write DockerFile
 - Use date metadata
 - Make database with blacklist option
-- Give preference to searching in english
 - Maybe use different construction algorithm for japanese?

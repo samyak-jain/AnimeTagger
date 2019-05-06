@@ -1,4 +1,5 @@
 import asyncio
+import glob
 import os
 import subprocess
 import sys
@@ -8,7 +9,6 @@ from shutil import rmtree
 from typing import Dict, List, Any, Optional, Union, Tuple
 
 import eyed3
-import glob
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 from eyed3.id3 import TagFile
@@ -16,12 +16,12 @@ from eyed3.mp3 import Mp3AudioFile
 from tqdm import tqdm
 
 from api import API
+from api.acoustid import ACOUSTID
 from api.genius import GENIUS
 from api.vgmdb import VGMDB
-from utils.clean_text import clean_string, remove_slashes
-from utils.image_handler import download_image
-from api.acoustid import ACOUSTID
 from models import Song
+from utils.image_handler import download_image
+from utils.text_processing import clean_string, remove_slashes, detect_language
 
 ALBUM_DIR = "albums"
 
@@ -84,7 +84,6 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     initial_length: int = len(filtered_query)
 
     for length in tqdm(range(initial_length - 1, -1, -1)):
-        print(longest_query)
         query_lengths: List[Union[int, float]] = [-1]*len(api_list)
         results: List[Optional[Song]] = []
 
@@ -137,32 +136,43 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     fingerprint_title: Optional[str] = None
     fingerprint_artist: Optional[str] = None
 
+    file_base: Union[bytes, str] = os.path.splitext(song)[0]
+    try:
+        file_name = file_base.decode("utf-8")
+    except AttributeError:
+        file_name = file_base
+
     if fingerprint_result is not None:
         fingerprint_success = True
         fingerprint_title = fingerprint_result["title"]
         fingerprint_artist = fingerprint_result["artist"]
 
-    if fingerprint_title is not None:
-        metadata = construct_query(fingerprint_title, api_list)
+    possibilities: List[Optional[str]] = []
+    title_lang: Optional[int] = detect_language(title)
+    name_lang: Optional[int] = detect_language(file_name)
 
-    # Check if metadata already exists
-    if metadata is None and title is not None:
-        metadata = construct_query(title, api_list)
+    to_be_added: List[str] = [title, file_name]
+    if title_lang is not None and name_lang is not None:
+        if title_lang <= name_lang:
+            possibilities.extend(to_be_added)
+        else:
+            possibilities.extend(to_be_added[::-1])
+    else:
+        possibilities.extend(to_be_added)
 
-    if title is None or metadata is None:
-        file_base: Union[bytes, str] = os.path.splitext(song)[0]
-        try:
-            file_name = file_base.decode("utf-8")
-        except AttributeError:
-            file_name = file_base
+    for possibility in possibilities:
+        if possibility is None:
+            continue
 
-        metadata = construct_query(file_name, api_list)
+        metadata = construct_query(possibility, api_list)
 
-        if metadata is None:
-            print(f"Cannot tag file {song}")
-            return
+        if metadata is not None:
+            break
 
-    assert metadata is not None
+    if metadata is None:
+        print(f"Cannot tag file {song}")
+        return
+
     if fingerprint_success:
         assert fingerprint_artist is not None and fingerprint_title is not None
         audio_file.tag.title = fingerprint_title
