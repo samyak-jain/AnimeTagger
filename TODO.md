@@ -7,3 +7,4 @@
 - Add Documentation
 - Write DockerFile
 - Use date metadata
+- Make database with blacklist option

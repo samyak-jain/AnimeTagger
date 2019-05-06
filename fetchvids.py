@@ -1,7 +1,8 @@
 import subprocess
 from pathlib import Path
 from subprocess import Popen
-from typing import List, Optional
+import youtube_dl
+from typing import List, Optional, Any, Dict
 
 
 def get_vid_list(cookie_path: Path, playlist_url: str) -> List[str]:
@@ -22,11 +23,18 @@ def get_vid_list(cookie_path: Path, playlist_url: str) -> List[str]:
 
 
 def download_vids(download_path: Path, url_list: List[str], max_number: Optional[int] = None):
+    ydl_opts: Dict[str, Any] = {
+        'format': 'bestaudio/best'
+
+    }
+
+
     if max_number is None:
         max_number = len(url_list)
 
     for url in url_list[:max_number]:
-        subprocess.run(["youtube-dl", url, "-o", str(download_path.absolute()) + "%(title)s.%(ext)s"])
+        subprocess.run(["youtube-dl", "-x", "--audio-format", "mp3", url, "-o", str(download_path.absolute()) +
+                        "/%(title)s.%(ext)s", "--add-metadata"])
 
 
 if __name__ == "__main__":
@@ -34,4 +42,7 @@ if __name__ == "__main__":
     youtube_url: str = "https://www.youtube.com/watch?v=Q9WcG0OMElo&list=RDGMEMhCgTQvcskbGUxqI4Sn2QYw&start_radio=1"
 
     vid_list: List[str] = get_vid_list(cookie, youtube_url)
-    download_vids(Path("./music"), vid_list)
+    print(vid_list)
+    for vid in vid_list:
+        print(youtube_dl.extractor.youtube.YoutubeIE.suitable(vid))
+    download_vids(Path("./music"), vid_list, 2)
