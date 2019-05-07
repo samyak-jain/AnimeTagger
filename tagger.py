@@ -206,7 +206,7 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     final_metadata: Dict[str, Optional[str]] = {
         'song': audio_file.tag.title,
         'album': audio_file.tag.album,
-        'artist': audio_file.tag.artists,
+        'artist': audio_file.tag.artist,
         'album art': metadata.album_art
     }
     print(f"{song} will now have the metadata: {final_metadata}")

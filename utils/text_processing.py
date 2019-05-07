@@ -54,11 +54,10 @@ def detect_language(string_to_be_detected: Optional[str]) -> Optional[int]:
     if string_to_be_detected is None:
         return None
 
-    with stop_echo():
-        try:
-            detector: Detector = Detector(string_to_be_detected)
-        except UnknownLanguage:
-            return None
+    try:
+        detector: Detector = Detector(string_to_be_detected)
+    except UnknownLanguage:
+        return None
 
     languages: List[Language] = detector.languages
     best_lang: Language = max(languages, key=lambda lang: lang.confidence)

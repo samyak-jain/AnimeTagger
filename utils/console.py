@@ -23,10 +23,8 @@ def command_line_parser(arguments: List[str]) -> CommandLineOptions:
     expand_flags: List[str] = [flag[2:] if flag[1] == "-" else CommandLineOptions.flag_maps[flag[1:]] for flag in flags]
     expand_flags_without_duplicates: List[str] = list(set(expand_flags))
 
-    my_options: CommandLineOptions = CommandLineOptions()
+    my_options: CommandLineOptions = CommandLineOptions(command_list=commands)
     if "progress" in expand_flags_without_duplicates:
         my_options.progress = True
-
-    my_options.command_list = commands
 
     return my_options
