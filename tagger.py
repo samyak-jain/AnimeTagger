@@ -19,16 +19,17 @@ from api import API
 from api.acoustid import ACOUSTID
 from api.genius import GENIUS
 from api.vgmdb import VGMDB
-from models import Song
+from models import Song, CommandLineOptions
 from utils.image_handler import download_image
 from utils.text_processing import clean_string, remove_slashes, detect_language
+from utils.console import command_line_parser
 
 ALBUM_DIR = "albums"
+command_line_options: Optional[CommandLineOptions] = None
 
 
 async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API, best_similarity: float) \
         -> Optional[Tuple[float, Optional[Song]]]:
-
     def filter_criteria(query: str) -> bool:
         tokens: List[str] = query.split(" ")
         return not all(len(token) < 3 for token in tokens)
@@ -79,6 +80,8 @@ def get_all_possible_subs(query: List[str], length: int) -> List[List[str]]:
 
 
 def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
+    global command_line_options
+
     cleaned_query: str = clean_string(query)
     filtered_query: List[str] = [token for token in cleaned_query.split(" ") if len(token) > 0]
 
@@ -87,7 +90,14 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     best_similarity: float = -1
     best_result: Optional[Song] = None
 
-    for length in tqdm(range(initial_length - 1, -1, -1)):
+    assert command_line_options is not None
+
+    if command_line_options.progress:
+        iterate_over = tqdm(range(initial_length - 1, -1, -1))
+    else:
+        iterate_over = range(initial_length - 1, -1, -1)
+
+    for length in iterate_over:
         for pos, api_tag in enumerate(api_list):
             async_result = asyncio.run(query_databases(query, longest_query, api_tag, best_similarity))
 
@@ -164,12 +174,15 @@ def tag_song(path: Path, song: str, api_list: List[API]):
     if fingerprint_success:
         assert fingerprint_artist is not None and fingerprint_title is not None
         audio_file.tag.title = fingerprint_title
-        audio_file.tag.artists = fingerprint_artist
+        audio_file.tag.artist = fingerprint_artist
     else:
         audio_file.tag.title = metadata.song_name
-        audio_file.tag.artists = metadata.artists
+        audio_file.tag.artist = metadata.artists
 
     audio_file.tag.album = metadata.album_name
+
+    # Save all the changes to the tags
+    audio_file.tag.save()
 
     os.makedirs(ALBUM_DIR, exist_ok=True)
     img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
@@ -202,7 +215,10 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 if __name__ == "__main__":
     load_dotenv()
     # path_name: Union[Path, Any] = Path("/home/samyak/music_test")
-    path_name: Union[Path, Any] = Path(sys.argv[1])
+    command_line_options = command_line_parser(sys.argv)
+
+    assert command_line_options is not None
+    path_name: Union[Path, Any] = Path(command_line_options.command_list[1])
     API_LIST: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
 
     assert isinstance(path_name, Path)

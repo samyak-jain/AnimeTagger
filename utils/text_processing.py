@@ -6,6 +6,8 @@ from polyglot.detect import Detector, Language
 from polyglot.detect.base import UnknownLanguage
 from difflib import SequenceMatcher
 
+from utils.console import stop_echo
+
 STOPWORDS: List[str] = [
     "amv",
     "hd",
@@ -52,10 +54,11 @@ def detect_language(string_to_be_detected: Optional[str]) -> Optional[int]:
     if string_to_be_detected is None:
         return None
 
-    try:
-        detector: Detector = Detector(string_to_be_detected)
-    except UnknownLanguage:
-        return None
+    with stop_echo():
+        try:
+            detector: Detector = Detector(string_to_be_detected)
+        except UnknownLanguage:
+            return None
 
     languages: List[Language] = detector.languages
     best_lang: Language = max(languages, key=lambda lang: lang.confidence)
