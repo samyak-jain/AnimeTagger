@@ -17,3 +17,10 @@ class CommandLineOptions(BaseModel):
     }
     progress: bool = False
     command_list: List[str]
+
+
+class DatabaseOptions(BaseModel):
+    database_user: str
+    database_password: str
+    database_uri: str
+    database_name: str

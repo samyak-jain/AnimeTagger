@@ -22,7 +22,7 @@ def download_vids(download_path: Path, url_list: List[str], max_number: Optional
         subprocess.run(["youtube-dl", "-x", "--audio-format", "mp3", url, "-o", str(download_path.absolute()) +
                         "/%(title)s.%(ext)s", "--add-metadata"])
 
-        
+
 
 
 if __name__ == "__main__":
