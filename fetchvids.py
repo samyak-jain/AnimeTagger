@@ -1,40 +1,28 @@
 import subprocess
 from pathlib import Path
 from subprocess import Popen
-import youtube_dl
-from typing import List, Optional, Any, Dict
+from typing import List, Optional
 
 
 def get_vid_list(cookie_path: Path, playlist_url: str) -> List[str]:
-    download_command: List[str] = ["youtube-dl", "--cookies", str(cookie_path), playlist_url, "--flat-playlist", "-j"]
-    json_parse_command: List[str] = ["jq", "-r", ".id"]
-    sed_command: List[str] = ["sed", "s_^_https://youtu.be/_"]
+    fetch_result: Popen = subprocess.Popen(["sh", str(Path.cwd() / "scripts/fetch_vids.sh"), str(cookie_path),
+                                            playlist_url], stdout=subprocess.PIPE)
 
-    download_result: Popen = subprocess.Popen(download_command, stdout=subprocess.PIPE)
-    json_parse_result: Popen = subprocess.Popen(json_parse_command, stdin=download_result.stdout,
-                                                stdout=subprocess.PIPE)
-
-    sed_result = subprocess.Popen(sed_command, stdin=json_parse_result.stdout, stdout=subprocess.PIPE)
-
-    list_of_urls: List[str] = sed_result.stdout.read().decode("utf-8").split("\n")
+    list_of_urls: List[str] = fetch_result.stdout.read().decode("utf-8").split("\n")
     filtered_urls: List[str] = [url for url in list_of_urls if len(url) > 0]
 
     return filtered_urls
 
 
 def download_vids(download_path: Path, url_list: List[str], max_number: Optional[int] = None):
-    ydl_opts: Dict[str, Any] = {
-        'format': 'bestaudio/best'
-
-    }
-
-
     if max_number is None:
         max_number = len(url_list)
 
     for url in url_list[:max_number]:
         subprocess.run(["youtube-dl", "-x", "--audio-format", "mp3", url, "-o", str(download_path.absolute()) +
                         "/%(title)s.%(ext)s", "--add-metadata"])
+
+        
 
 
 if __name__ == "__main__":
@@ -43,6 +31,4 @@ if __name__ == "__main__":
 
     vid_list: List[str] = get_vid_list(cookie, youtube_url)
     print(vid_list)
-    for vid in vid_list:
-        print(youtube_dl.extractor.youtube.YoutubeIE.suitable(vid))
     download_vids(Path("./music"), vid_list, 2)

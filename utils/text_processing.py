@@ -1,12 +1,10 @@
 import re
 import string
+from difflib import SequenceMatcher
 from typing import List, Optional
 
 from polyglot.detect import Detector, Language
 from polyglot.detect.base import UnknownLanguage
-from difflib import SequenceMatcher
-
-from utils.console import stop_echo
 
 STOPWORDS: List[str] = [
     "amv",
