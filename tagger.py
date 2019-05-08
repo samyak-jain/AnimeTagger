@@ -20,9 +20,9 @@ from api.acoustid import ACOUSTID
 from api.genius import GENIUS
 from api.vgmdb import VGMDB
 from models import Song, CommandLineOptions
+from utils.console import command_line_parser
 from utils.image_handler import download_image
 from utils.text_processing import clean_string, remove_slashes, detect_language
-from utils.console import command_line_parser
 
 ALBUM_DIR = "albums"
 command_line_options: Optional[CommandLineOptions] = None
@@ -191,8 +191,7 @@ def tag_song(path: Path, song: str, api_list: List[API]):
         download_image(metadata.album_art, img_path)
 
         # To suppress output of lame command
-        with open(os.devnull, 'wb') as DEVNULL:
-            subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=DEVNULL, stderr=subprocess.STDOUT)
+        subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
         rmtree(ALBUM_DIR)
 

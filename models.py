@@ -24,3 +24,4 @@ class DatabaseOptions(BaseModel):
     database_password: str
     database_uri: str
     database_name: str
+    port: int

@@ -1,37 +1,43 @@
 from typing import List, Dict
 
-import motor.motor_asyncio
+import pymongo
+from pymongo import database
 from models import DatabaseOptions
+
+from urllib.parse import quote
 
 
 class DatabaseHandler:
-    blacklist_collection: motor.motor_asyncio.AsyncIOMotorCollection
-    download_collection: motor.motor_asyncio.AsyncIOMotorCollection
-    database: motor.motor_asyncio.AsyncIOMotorDatabase
-    client: motor.motor_asyncio.AsyncIOMotorClient
+    blacklist_collection: pymongo.collection
+    download_collection: pymongo.collection
+    database: pymongo.database.Database
+    client: pymongo.MongoClient
 
     def __init__(self, options: DatabaseOptions):
-        self.client = motor.motor_asyncio.AsyncIOMotorClient(f"mongodb://{options.database_user}:"
-                                                             f"{options.database_password}@{options.database_uri}")
+        # self.client = pymongo.MongoClient(
+        #     quote(f"mongodb://{options.database_user}:{options.database_password}@{options.database_uri}"))
+
+        self.client = pymongo.MongoClient(options.database_uri, options.port)
         self.database = self.client[options.database_name]
+        self.database.authenticate(options.database_user, options.database_password)
         self.download_collection = self.database["downloaded"]
         self.blacklist_collection = self.database["blacklist"]
 
-    async def add_to_downloaded(self, url: str, name: str):
-        if self.check_if_url_exists(self.download_collection):
+    def add_to_downloaded(self, url: str, name: str):
+        if self.check_if_url_exists(url, self.download_collection):
             return
 
-        await self.download_collection.insert_one({
+        self.download_collection.insert_one({
             'url': url,
             'name': name
         })
 
-    async def add_many_to_downloaded(self, urls: List[str], names: List[str]):
+    def add_many_to_collection(self, urls: List[str], names: List[str], collection: pymongo.collection):
         for url in urls:
-            if self.check_if_url_exists(self.download_collection):
+            if self.check_if_url_exists(url, self.download_collection):
                 return
 
-        await self.download_collection.insert_many([
+        collection.insert_many([
 
             {
                 'url': url,
@@ -41,47 +47,50 @@ class DatabaseHandler:
             for url, name in zip(urls, names)
         ])
 
-    async def add_to_blacklist(self, url: str, name: str):
-        if self.check_if_url_exists(self.blacklist_collection):
+    def add_to_blacklist(self, url: str, name: str):
+        if self.check_if_url_exists(url, self.blacklist_collection):
             return
 
-        await self.blacklist_collection.insert_one({
+        self.blacklist_collection.insert_one({
             'url': url,
             'name': name
         })
 
-    async def remove_from_blacklist_with_url(self, url: str):
-        if not self.check_if_url_exists(self.blacklist_collection):
+    def remove_from_blacklist_with_url(self, url: str):
+        if not self.check_if_url_exists(url, self.blacklist_collection):
             return
 
-        await self.blacklist_collection.delete_many({
+        self.blacklist_collection.delete_many({
             'url': url
         })
 
-    async def remove_from_blacklist_with_name(self, name: str):
-        if not self.check_if_name_exists(self.blacklist_collection):
+    def remove_from_blacklist_with_name(self, name: str):
+        if not self.check_if_name_exists(name, self.blacklist_collection):
             return
 
-        await self.blacklist_collection.delete_many({
+        self.blacklist_collection.delete_many({
             'name': name
         })
 
     @staticmethod
-    async def check_if_url_exists(url: str, collection: motor.motor_asyncio.AsyncIOMotorCollection) -> bool:
-        cursor: motor.motor_asyncio.AsyncIOMotorCursor = collection.find({
+    def check_if_url_exists(url: str, collection: pymongo.collection) -> bool:
+        cursor: pymongo.cursor = collection.find({
             'url': url
         })
 
-        documents: List[Dict[str, str]] = await cursor.to_list(length=100)
+        documents: List[Dict[str, str]] = list(cursor)
 
         return not (len(documents) < 1)
 
     @staticmethod
-    async def check_if_name_exists(name: str, collection: motor.motor_asyncio.AsyncIOMotorCollection) -> bool:
-        cursor: motor.motor_asyncio.AsyncIOMotorCursor = collection.find({
+    def check_if_name_exists(name: str, collection: pymongo.collection) -> bool:
+        cursor: pymongo.cursor = collection.find({
             'name': name
         })
 
-        documents: List[Dict[str, str]] = await cursor.to_list(length=100)
+        documents: List[Dict[str, str]] = list(cursor)
 
         return not (len(documents) < 1)
+
+    def get_all_blacklist(self) -> List[Dict[str, str]]:
+        return self.blacklist_collection.find({}).to_list(length=10000)
