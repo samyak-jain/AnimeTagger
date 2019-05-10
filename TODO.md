@@ -1,10 +1,10 @@
 - Add continuos integration
 - Add logging
 - Build API for CRUD
-- Implement Video fetching
 - Implement google drive integration
 - Add Documentation
 - Write DockerFile
 - Use date metadata
-- Make database with blacklist option
 - Maybe use different construction algorithm for japanese?
+- Inspect Genius API for bugs
+- Check if the APIs are giving preference to the english language

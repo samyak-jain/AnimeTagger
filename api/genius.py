@@ -56,6 +56,8 @@ class GENIUS(API):
                 song_result: Dict[str, Any] = song["result"]
 
                 if song_result.get("api_path") is not None:
+                    print(song_result.get("title"))
+                    print(song_result["api_path"])
                     api_path = song_result["api_path"]
                     api_result: Dict[str, Any] = requests.get(self.SONG_URL(api_path)).json()
                     if api_result is None:
