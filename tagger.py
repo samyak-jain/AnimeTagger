@@ -189,9 +189,13 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 
     if metadata.album_art is not None:
         download_image(metadata.album_art, img_path)
+        #
+        # # To suppress output of lame command
+        # subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-        # To suppress output of lame command
-        subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        with open(img_path, "rb") as img:
+            imgdata = img.read()
+            audio_file.tag.images.set(3, imgdata, "image/jpg", metadata.album_name)
 
         rmtree(ALBUM_DIR)
 

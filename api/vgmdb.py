@@ -73,7 +73,10 @@ class VGMDB(API):
 
                 # Else make the japanese name as the title of the song
                 if not romaji_existed:
-                    song_name = track_names[0]["Japanese"]
+                    song_name = track_names[0].get("Japanese")
+
+                if song_name is None:
+                    continue
 
                 performers: List[Dict[str, Any]] = album_details["performers"]
                 artist_list: List[str] = []
