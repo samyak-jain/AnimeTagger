@@ -24,21 +24,28 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     if max_number is None:
         max_number = len(url_list)
 
+    blacklist_urls: List[str] = list(db.get_all_blacklist())
     processes: List[Popen] = []
-    for url in url_list[:max_number]:
-        # subprocess.run(["youtube-dl", "-x", "--audio-format", "mp3", url, "-o", str(download_path.absolute()) +
-        #                 "/%(title)s.%(ext)s", "--add-metadata"])
+    number_of_vids_downloaded: int = 0
+
+    for url in url_list:
+        if url in blacklist_urls:
+            print(f"Not executing url {url} since it is in blacklist")
+            continue
+
+        if number_of_vids_downloaded >= max_number:
+            break
 
         processes.append(subprocess.Popen(["sh", str(Path.cwd() / "scripts/download_vids.sh"), url,
                                            str(download_path.absolute()) + "/%(title)s.%(ext)s"], stdout=PIPE))
 
+        number_of_vids_downloaded += 1
+
     outputs: List[Optional[str]] = [None]*max_number
     count: int = 0
+
     while processes:
         for index, proc in enumerate(processes):
-            print(url_list[index])
-            print(outputs)
-
             if proc.poll() is None:
                 print("waiting")
 
@@ -49,12 +56,11 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
             processes.remove(proc)
             count += 1
 
-    print(outputs)
-    data_to_add: List[Tuple[str, Optional[str]]] = [(url_list[index], output) for index, output in enumerate(outputs) if output is not None and len(output) < 1]
+    print(f"Added songs {outputs}")
+    data_to_add: List[str] = [url_list[index] for index, output in enumerate(outputs) if output is not None and len(output) < 1]
 
     if len(data_to_add) > 0:
-        black_url, black_names = zip(*data_to_add)
-        db.add_many_to_collection(black_url, black_names, db.blacklist_collection)
+        db.add_many_to_blacklist(data_to_add)
 
 
 if __name__ == "__main__":
@@ -69,4 +75,4 @@ if __name__ == "__main__":
     youtube_url: str = "https://www.youtube.com/watch?v=Q9WcG0OMElo&list=RDGMEMhCgTQvcskbGUxqI4Sn2QYw&start_radio=1"
 
     vid_list: List[str] = get_vid_list(cookie, youtube_url)
-    download_vids(Path("./music"), vid_list, database, 2)
+    download_vids(Path("./music"), vid_list, database, 10)

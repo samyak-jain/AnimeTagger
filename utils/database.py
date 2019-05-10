@@ -32,9 +32,23 @@ class DatabaseHandler:
             'name': name
         })
 
+    def add_many_to_blacklist(self, urls: List[str]):
+        urls_not_added_yet: List[str] = []
+
+        for url in urls:
+            if not self.check_if_url_exists(url, self.blacklist_collection):
+                urls_not_added_yet.append(url)
+
+        if len(urls_not_added_yet) < 1:
+            return
+
+        self.blacklist_collection.insert_many([
+            {"url": url} for url in urls_not_added_yet
+        ])
+
     def add_many_to_collection(self, urls: List[str], names: List[str], collection: pymongo.collection):
         for url in urls:
-            if self.check_if_url_exists(url, self.download_collection):
+            if self.check_if_url_exists(url, collection):
                 return
 
         collection.insert_many([
@@ -92,5 +106,5 @@ class DatabaseHandler:
 
         return not (len(documents) < 1)
 
-    def get_all_blacklist(self) -> List[Dict[str, str]]:
-        return self.blacklist_collection.find({}).to_list(length=10000)
+    def get_all_blacklist(self) -> List[str]:
+        return [element['url'] for element in self.blacklist_collection.find({})]
