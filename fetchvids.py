@@ -26,25 +26,34 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         max_number = len(url_list)
 
     blacklist_urls: List[str] = list(db.get_all_blacklist())
+    already_downloaded_list: List[str] = list(db.get_all_downloaded())
     urls_to_be_blacklisted: List[str] = []
     number_of_vids_downloaded: int = 0
 
     outputs: List[Tuple[str, str]] = []
     for url in url_list:
+        if url in blacklist_urls:
+            print(f"Not executing url {url} since it is in blacklist")
+            continue
+
+        if url in already_downloaded_list:
+            print(f"{url} has already been downloaded")
+            continue
 
         assert len(url) > 18
         youtube_key = getenv("YOUTUBE_KEY")
 
         assert youtube_key is not None
         vid_health = subprocess.run(["sh", "scripts/get_vid_health.sh", url[17:], youtube_key], stdout=PIPE)
-        items = json.loads(vid_health.stdout.decode('utf-8').rstrip())
+
+        try:
+            items = json.loads(vid_health.stdout.decode('utf-8').rstrip())['items']
+        except json.decoder.JSONDecodeError:
+            print("Unknown Error")
+            continue
 
         if len(items) == 0:
             urls_to_be_blacklisted.append(url)
-            continue
-
-        if url in blacklist_urls:
-            print(f"Not executing url {url} since it is in blacklist")
             continue
 
         if number_of_vids_downloaded >= max_number:

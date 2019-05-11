@@ -60,7 +60,10 @@ class DatabaseHandler:
         ])
 
     def update_downloaded(self, old_name: str, new_name: str):
-        self.download_collection.find_one_and_update({'name': old_name}, {'$set': {'new_name': new_name}})
+        result = self.download_collection.find_one_and_update({'name': old_name}, {'$set': {'new_name': new_name}})
+
+        if result is None:
+            print("Trying to update something that doesn't exist")
 
     def add_to_blacklist(self, url: str, name: str):
         if self.check_if_url_exists(url, self.blacklist_collection):
@@ -109,3 +112,6 @@ class DatabaseHandler:
 
     def get_all_blacklist(self) -> List[str]:
         return [element['url'] for element in self.blacklist_collection.find({})]
+
+    def get_all_downloaded(self) -> List[str]:
+        return [element['url'] for element in self.download_collection.find({})]
