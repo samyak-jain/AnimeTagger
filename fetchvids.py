@@ -89,7 +89,7 @@ def start():
                                                database_name=getenv("DB_NAME"),
                                                port=getenv("DB_PORT")))
 
-    cookie: Path = Path("secrets/cookies.txt")
+    cookie: Path = Path("cookies.txt")
     youtube_url: str = "https://www.youtube.com/watch?v=Q9WcG0OMElo&list=RDGMEMhCgTQvcskbGUxqI4Sn2QYw&start_radio=1"
 
     vid_list: List[str] = get_vid_list(cookie, youtube_url)
