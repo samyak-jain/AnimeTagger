@@ -200,7 +200,7 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
     # Remove old files
-    for file_to_remove in glob.glob(str(path_name) + "/*.mp3.mp3"):
+    for file_to_remove in glob.glob(str(path) + "/*.mp3.mp3"):
         os.remove(file_to_remove)
 
     final_metadata: Dict[str, Optional[str]] = {
@@ -212,8 +212,9 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
     print(f"{song} will now have the metadata: {final_metadata}")
 
 
-if __name__ == "__main__":
+def start():
     load_dotenv()
+    global command_line_options
     command_line_options = command_line_parser(sys.argv)
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
@@ -223,10 +224,14 @@ if __name__ == "__main__":
 
     assert command_line_options is not None
     path_name: Union[Path, Any] = Path(command_line_options.command_list[1])
-    API_LIST: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
+    api_list: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
 
     assert isinstance(path_name, Path)
     files = os.listdir(str(path_name))
     for file in files:
         print(f"{file} is being processed")
-        tag_song(path_name, file, API_LIST, database)
+        tag_song(path_name, file, api_list, database)
+
+
+if __name__ == "__main__":
+    start()

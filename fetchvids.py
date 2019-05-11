@@ -81,7 +81,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         db.add_many_to_collection(download_urls, download_names, db.download_collection)
 
 
-if __name__ == "__main__":
+def start():
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
@@ -89,8 +89,12 @@ if __name__ == "__main__":
                                                database_name=getenv("DB_NAME"),
                                                port=getenv("DB_PORT")))
 
-    cookie: Path = Path("cookies.txt")
+    cookie: Path = Path("secrets/cookies.txt")
     youtube_url: str = "https://www.youtube.com/watch?v=Q9WcG0OMElo&list=RDGMEMhCgTQvcskbGUxqI4Sn2QYw&start_radio=1"
 
     vid_list: List[str] = get_vid_list(cookie, youtube_url)
     download_vids(Path("./music"), vid_list, database, 10)
+
+
+if __name__ == "__main__":
+    start()

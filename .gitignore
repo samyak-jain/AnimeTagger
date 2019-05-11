@@ -2,5 +2,6 @@
 .idea
 .env
 __pycache__
-cookies.txt
 music
+cookies.txt
+client_secrets.json
