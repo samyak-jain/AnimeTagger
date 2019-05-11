@@ -4,6 +4,9 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt install lame
+ENV SHELL=/bin/bash
+RUN curl https://rclone.org/install.sh | sudo bash
+RUN pip install poetry
 
-CMD ["python", "tagger.py"]
+
+CMD ["uvicorn", "server:app"]

@@ -415,7 +415,7 @@ python-versions = "*"
 version = "2019.5.11"
 
 [metadata]
-content-hash = "5016267a635c38dccb046ba64f46f14e085972741a1d9b67c94097cd4482545e"
+content-hash = "763a0fabace6a42f9f4404ee2d5ee09e75a31fa5615ff2f567be573b45ab9bb9"
 python-versions = "^3.7"
 
 [metadata.hashes]
