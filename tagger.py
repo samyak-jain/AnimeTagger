@@ -182,23 +182,18 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
 
     audio_file.tag.album = metadata.album_name
 
-    # Save all the changes to the tags
-    audio_file.tag.save()
-
     os.makedirs(ALBUM_DIR, exist_ok=True)
     img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
 
+    # Save all the changes to the tags
     if metadata.album_art is not None:
         download_image(metadata.album_art, img_path)
-        #
-        # # To suppress output of lame command
-        # subprocess.run(["lame", "--ti", img_path, str(path / song)], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-
         with open(img_path, "rb") as img:
             imgdata = img.read()
             audio_file.tag.images.set(3, imgdata, "image/jpg", metadata.album_name)
 
         rmtree(ALBUM_DIR)
+    audio_file.tag.save()
 
     # Rename the file so that it matches the title
     db.update_downloaded(song, remove_slashes(audio_file.tag.title))

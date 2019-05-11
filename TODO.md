@@ -8,3 +8,4 @@
 - Maybe use different construction algorithm for japanese?
 - Inspect Genius API for bugs
 - Check if the APIs are giving preference to the english language
+- API to add new video just from link or unique id
