@@ -1,9 +1,9 @@
 import asyncio
 import glob
 import os
-import subprocess
 import sys
 from asyncio.tasks import Task
+from os import getenv
 from pathlib import Path
 from shutil import rmtree
 from typing import Dict, List, Any, Optional, Union, Tuple
@@ -19,8 +19,9 @@ from api import API
 from api.acoustid import ACOUSTID
 from api.genius import GENIUS
 from api.vgmdb import VGMDB
-from models import Song, CommandLineOptions
+from models import Song, CommandLineOptions, DatabaseOptions
 from utils.console import command_line_parser
+from utils.database import DatabaseHandler
 from utils.image_handler import download_image
 from utils.text_processing import clean_string, remove_slashes, detect_language
 
@@ -117,7 +118,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     return best_result
 
 
-def tag_song(path: Path, song: str, api_list: List[API]):
+def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
     audio_file: Union[Mp3AudioFile, TagFile, None] = eyed3.load(str(path / song))
     assert audio_file is not None
     if isinstance(audio_file, TagFile):
@@ -200,6 +201,7 @@ def tag_song(path: Path, song: str, api_list: List[API]):
         rmtree(ALBUM_DIR)
 
     # Rename the file so that it matches the title
+    db.update_downloaded(song, remove_slashes(audio_file.tag.title))
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
     # Remove old files
@@ -217,8 +219,12 @@ def tag_song(path: Path, song: str, api_list: List[API]):
 
 if __name__ == "__main__":
     load_dotenv()
-    # path_name: Union[Path, Any] = Path("/home/samyak/music_test")
     command_line_options = command_line_parser(sys.argv)
+    database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
+                                               database_password=getenv("MONGO_PASS"),
+                                               database_uri=getenv("MONGO_URI"),
+                                               database_name=getenv("DB_NAME"),
+                                               port=getenv("DB_PORT")))
 
     assert command_line_options is not None
     path_name: Union[Path, Any] = Path(command_line_options.command_list[1])
@@ -228,4 +234,4 @@ if __name__ == "__main__":
     files = os.listdir(str(path_name))
     for file in files:
         print(f"{file} is being processed")
-        tag_song(path_name, file, API_LIST)
+        tag_song(path_name, file, API_LIST, database)

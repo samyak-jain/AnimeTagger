@@ -2,9 +2,8 @@ from typing import List, Dict
 
 import pymongo
 from pymongo import database
-from models import DatabaseOptions
 
-from urllib.parse import quote
+from models import DatabaseOptions
 
 
 class DatabaseHandler:
@@ -14,9 +13,6 @@ class DatabaseHandler:
     client: pymongo.MongoClient
 
     def __init__(self, options: DatabaseOptions):
-        # self.client = pymongo.MongoClient(
-        #     quote(f"mongodb://{options.database_user}:{options.database_password}@{options.database_uri}"))
-
         self.client = pymongo.MongoClient(options.database_uri, options.port)
         self.database = self.client[options.database_name]
         self.database.authenticate(options.database_user, options.database_password)
@@ -47,9 +43,11 @@ class DatabaseHandler:
         ])
 
     def add_many_to_collection(self, urls: List[str], names: List[str], collection: pymongo.collection):
+        urls_not_added_yet: List[str] = []
+
         for url in urls:
-            if self.check_if_url_exists(url, collection):
-                return
+            if not self.check_if_url_exists(url, collection):
+                urls_not_added_yet.append(url)
 
         collection.insert_many([
 
@@ -60,6 +58,9 @@ class DatabaseHandler:
 
             for url, name in zip(urls, names)
         ])
+
+    def update_downloaded(self, old_name: str, new_name: str):
+        self.download_collection.find_one_and_update({'name': old_name}, {'$set': {'new_name': new_name}})
 
     def add_to_blacklist(self, url: str, name: str):
         if self.check_if_url_exists(url, self.blacklist_collection):

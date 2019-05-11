@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 
 from dotenv import load_dotenv
 
+import json
 from models import DatabaseOptions
 from utils.database import DatabaseHandler
 
@@ -25,10 +26,23 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         max_number = len(url_list)
 
     blacklist_urls: List[str] = list(db.get_all_blacklist())
-    processes: List[Popen] = []
+    urls_to_be_blacklisted: List[str] = []
     number_of_vids_downloaded: int = 0
 
+    outputs: List[Tuple[str, str]] = []
     for url in url_list:
+
+        assert len(url) > 18
+        youtube_key = getenv("YOUTUBE_KEY")
+
+        assert youtube_key is not None
+        vid_health = subprocess.run(["sh", "scripts/get_vid_health.sh", url[17:], youtube_key], stdout=PIPE)
+        items = json.loads(vid_health.stdout.decode('utf-8').rstrip())
+
+        if len(items) == 0:
+            urls_to_be_blacklisted.append(url)
+            continue
+
         if url in blacklist_urls:
             print(f"Not executing url {url} since it is in blacklist")
             continue
@@ -36,31 +50,26 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         if number_of_vids_downloaded >= max_number:
             break
 
-        processes.append(subprocess.Popen(["sh", str(Path.cwd() / "scripts/download_vids.sh"), url,
-                                           str(download_path.absolute()) + "/%(title)s.%(ext)s"], stdout=PIPE))
+        x = subprocess.Popen(["sh", str(Path.cwd() / "scripts/download_vids.sh"), url,
+                              str(download_path.absolute()) + "/%(title)s.%(ext)s"], stdout=PIPE)
+        x.wait()
+        test = x.stdout.read().decode('utf-8')
+        outputs.append((url, test))
 
         number_of_vids_downloaded += 1
 
-    outputs: List[Optional[str]] = [None]*max_number
-    count: int = 0
-
-    while processes:
-        for index, proc in enumerate(processes):
-            if proc.poll() is None:
-                print("waiting")
-
-            outputs[index + count] = proc.stdout.read().decode("utf-8")
-
-            proc.terminate()
-
-            processes.remove(proc)
-            count += 1
-
     print(f"Added songs {outputs}")
-    data_to_add: List[str] = [url_list[index] for index, output in enumerate(outputs) if output is not None and len(output) < 1]
 
-    if len(data_to_add) > 0:
-        db.add_many_to_blacklist(data_to_add)
+    downloaded_songs: List[Tuple[str, str]] = [(url, output) for url, output in outputs
+                                               if output is not None and url not in urls_to_be_blacklisted]
+
+    download_urls, download_names = zip(*downloaded_songs)
+
+    if len(urls_to_be_blacklisted) > 0:
+        db.add_many_to_blacklist(urls_to_be_blacklisted)
+
+    if len(downloaded_songs) > 0:
+        db.add_many_to_collection(download_urls, download_names, db.download_collection)
 
 
 if __name__ == "__main__":
