@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -10,10 +10,13 @@ class DriveHandler:
         self.gauth = GoogleAuth()
         self.drive = GoogleDrive(self.gauth)
 
-    def search_file(self, file_name: str, parent_id: str) -> Optional[str]:
-        file_list = self.drive.ListFile({
+    def get_list(self, parent_id: str):
+        return self.drive.ListFile({
             'q': f"'{parent_id}' in parents and trashed=false"
         }).GetList()
+
+    def search_file(self, file_name: str, parent_id: str) -> Optional[str]:
+        file_list = self.get_list(parent_id)
 
         for file in file_list:
             if file['title'] == file_name:
@@ -40,3 +43,19 @@ class DriveHandler:
         })
         file.SetContentFile(str(file_path.absolute()))
         file.Upload()
+
+    def copy_dir(self, file_paths: List[Path], parent_id: str):
+        file_names = [file.name for file in file_paths]
+
+        file_list = self.get_list(parent_id)
+
+        for file in file_list:
+            if file['name'] not in file_names:
+                file_to_be_deleted = self.drive.CreateFile({
+                    'id': file['id']
+                })
+
+                file_to_be_deleted.Trash()
+
+        for file in file_paths:
+            self.upload_file(file, parent_id)
