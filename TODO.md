@@ -10,3 +10,5 @@
 - Check if the APIs are giving preference to the english language
 - API to add new video just from link or unique id
 - Add timeout and rollback capabilities
+- Add capability for single video
+- Update tags after file modification
