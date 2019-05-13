@@ -68,7 +68,7 @@ def detect_language(string_to_be_detected: Optional[str]) -> Optional[int]:
         return 3
 
 
-def calculate_difference(str_a: str, str_b: str) -> float:
+def calculate_similarity(str_a: str, str_b: str) -> float:
     cleaned_a: str = clean_string(str_a)
     cleaned_b: str = clean_string(str_b)
 

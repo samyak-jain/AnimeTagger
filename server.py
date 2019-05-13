@@ -1,5 +1,6 @@
 from os import getenv
 from pathlib import Path
+from typing import List, Dict
 
 from fastapi import FastAPI
 import tagger
@@ -10,6 +11,7 @@ from models import DatabaseOptions
 from utils.google_drive import DriveHandler
 from utils.database import DatabaseHandler
 from dotenv import load_dotenv
+from utils.text_processing import calculate_similarity
 
 app = FastAPI()
 
@@ -42,7 +44,22 @@ async def update_db():
 
 @app.get("/search/{name}")
 async def search(name: str):
+    load_dotenv()
     db = get_database_object()
+    downloaded_songs: List[Dict[str, str]] = db.get_all_downloaded()
+
+    search_result: List[Dict[str, str]] = []
+    for song in downloaded_songs:
+        if calculate_similarity(name, song['name']) >= 0.5 or (song.get("new_name") is not None and calculate_similarity(name, song['new_name']) >= 0.5):
+            search_result.append({
+                'name': song['name'],
+                'url': song['url']
+            })
+
+    return {
+        'message': 'No result matched' if len(search_result) == 0 else 'Success',
+        'results': search_result
+    }
 
 
 @app.get("/remove/{url}")

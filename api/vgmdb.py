@@ -8,7 +8,7 @@ from aiohttp import ClientSession
 from api import API
 from models import Song
 
-from utils.text_processing import calculate_difference
+from utils.text_processing import calculate_similarity
 
 
 class VGMDB(API):
@@ -95,7 +95,7 @@ class VGMDB(API):
 
                 artists = ", ".join(artist_list)
 
-                current_similarity: float = calculate_difference(song_name, initial_query)
+                current_similarity: float = calculate_similarity(song_name, initial_query)
                 if current_similarity > best_similarity:
                     best_song = Song(song_name=song_name, artists=artists, album_art=album_art, album_name=album_name)
                     best_similarity = current_similarity

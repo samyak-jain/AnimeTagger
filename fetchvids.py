@@ -25,8 +25,8 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     if max_number is None:
         max_number = len(url_list)
 
-    blacklist_urls: List[str] = list(db.get_all_blacklist())
-    already_downloaded_list: List[str] = list(db.get_all_downloaded())
+    blacklist_urls: List[str] = list(db.get_all_blacklist_urls())
+    already_downloaded_list: List[str] = list(db.get_all_downloaded_urls())
     urls_to_be_blacklisted: List[str] = []
     number_of_vids_downloaded: int = 0
 

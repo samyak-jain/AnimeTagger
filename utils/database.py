@@ -110,8 +110,11 @@ class DatabaseHandler:
 
         return not (len(documents) < 1)
 
-    def get_all_blacklist(self) -> List[str]:
+    def get_all_blacklist_urls(self) -> List[str]:
         return [element['url'] for element in self.blacklist_collection.find({})]
 
-    def get_all_downloaded(self) -> List[str]:
+    def get_all_downloaded_urls(self) -> List[str]:
         return [element['url'] for element in self.download_collection.find({})]
+
+    def get_all_downloaded(self) -> List[Dict[str, str]]:
+        return list(self.download_collection.find({}))

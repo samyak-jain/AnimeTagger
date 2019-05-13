@@ -8,7 +8,7 @@ from aiohttp import ClientSession
 
 from api import API
 from models import Song
-from utils.text_processing import clean_string, calculate_difference
+from utils.text_processing import clean_string, calculate_similarity
 
 
 class GENIUS(API):
@@ -78,7 +78,7 @@ class GENIUS(API):
                     song_name = song_result["title"]
 
                     assert song_name is not None
-                    similarity = calculate_difference(song_name, initial_query)
+                    similarity = calculate_similarity(song_name, initial_query)
 
                     assert similarity is not None
                     if similarity < best_similarity:
