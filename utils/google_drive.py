@@ -44,7 +44,12 @@ class DriveHandler:
         file.SetContentFile(str(file_path.absolute()))
         file.Upload()
 
-    def copy_dir(self, file_paths: List[Path], parent_id: str):
+    def copy_dir(self, directory: Path, parent_id: str):
+        file_paths: List[Path] = []
+        for file in directory.iterdir():
+            if file.is_file():
+                file_paths.append(file)
+
         file_names = [file.name for file in file_paths]
 
         file_list = self.get_list(parent_id)
