@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "animetagger"
-version = "0.1.0"
+version = "0.1.1"
 description = "Automatically tags anime songs with relevant metadata"
 authors = ["samyak-jain <samtan106@gmail.com>"]
 license = "MIT"
