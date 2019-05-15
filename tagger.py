@@ -91,9 +91,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     best_similarity: float = -1
     best_result: Optional[Song] = None
 
-    assert command_line_options is not None
-
-    if command_line_options.progress:
+    if command_line_options is not None and command_line_options.progress:
         iterate_over = tqdm(range(initial_length - 1, -1, -1))
     else:
         iterate_over = range(initial_length - 1, -1, -1)
