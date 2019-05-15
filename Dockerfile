@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . /app
 
 RUN apt update
-RUN apt install -y jq curl
+RUN apt install -y jq curl ffmpeg
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir poetry
 RUN poetry config settings.virtualenvs.create false
