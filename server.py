@@ -115,4 +115,4 @@ if __name__ == "__main__":
     db = DatabaseHandler(DatabaseOptions(database_user=mongo_user, database_password=mongo_pass, database_uri=mongo_uri,
                                          database_name=db_name, port=db_port))
 
-    uvicorn.run(app, host="0.0.0.0", port=int(db_name) if db_port is not None else 8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(db_port) if db_port is not None else 8000)
