@@ -106,9 +106,13 @@ async def delete_playlist(payload: Payload):
 
 if __name__ == "__main__":
     load_dotenv()
-    db = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"), database_password=getenv("MONGO_PASS"),
-                                         database_uri=getenv("MONGO_URI"), database_name=getenv("DB_NAME"),
-                                         port=getenv("DB_PORT")))
+    mongo_user, mongo_pass, mongo_uri, db_name, db_port = getenv("MONGO_USER"), getenv("MONGO_PASS"), \
+                                                          getenv("MONGO_URI"), getenv("DB_NAME"), getenv("DB_PORT")
 
-    env_port = getenv("PORT")
-    uvicorn.run(app, host="0.0.0.0", port=int(env_port) if env_port is not None else 8000)
+    assert mongo_user is not None and mongo_pass is not None and mongo_uri is not None and db_name is not None and \
+           db_port is not None
+
+    db = DatabaseHandler(DatabaseOptions(database_user=mongo_user, database_password=mongo_pass, database_uri=mongo_uri,
+                                         database_name=db_name, port=db_port))
+
+    uvicorn.run(app, host="0.0.0.0", port=int(db_name) if db_port is not None else 8000)

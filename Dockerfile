@@ -8,9 +8,7 @@ RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir poetry
 RUN poetry config settings.virtualenvs.create false
 RUN poetry install 
-RUN apt update
-RUN apt install -y python3-setuptools
-RUN easy_install dist/*
-
+RUN unzip dist/*
+RUN cd pyacoustid && python setup.py install
 
 CMD ["python", "server.py"]
