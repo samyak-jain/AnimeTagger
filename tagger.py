@@ -212,18 +212,23 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
     print(f"{song} will now have the metadata: {final_metadata}")
 
 
-def start():
+def start(path_dir: Optional[Path] = None):
     load_dotenv()
     global command_line_options
-    command_line_options = command_line_parser(sys.argv)
+
+    if path_dir is None:
+        command_line_options = command_line_parser(sys.argv)
+        assert command_line_options is not None
+        path_name: Union[Path, Any] = Path(command_line_options.command_list[1])
+    else:
+        path_name = path_dir
+
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
                                                database_uri=getenv("MONGO_URI"),
                                                database_name=getenv("DB_NAME"),
                                                port=getenv("DB_PORT")))
 
-    assert command_line_options is not None
-    path_name: Union[Path, Any] = Path(command_line_options.command_list[1])
     api_list: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
 
     assert isinstance(path_name, Path)

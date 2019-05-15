@@ -33,7 +33,7 @@ async def test():
 @app.get("/update")
 async def update_db():
     fetchvids.start()
-    tagger.start()
+    tagger.start(Path("./music"))
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
 
@@ -75,7 +75,7 @@ async def blacklist_song(payload: Payload):
 @app.get("/add/")
 async def add_song(payload: Payload):
     fetchvids.start(payload.url)
-    tagger.start()
+    tagger.start(Path("./music"))
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
 
