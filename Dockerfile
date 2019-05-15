@@ -4,12 +4,10 @@ WORKDIR /app
 
 COPY . /app
 
-ENV SHELL=/bin/bash
-RUN curl https://rclone.org/install.sh | sudo bash
-RUN pip install poetry
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir poetry
+RUN poetry config settings.virtualenvs.create false
 RUN poetry install 
-RUN sh scripts/update_rclone_config.sh
 
 
-
-CMD ["uvicorn", "server:app"]
+CMD ["python:", "server.py"]
