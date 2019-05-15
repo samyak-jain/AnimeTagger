@@ -10,4 +10,4 @@ RUN poetry config settings.virtualenvs.create false
 RUN poetry install 
 
 
-CMD ["python:", "server.py"]
+CMD ["python", "server.py"]
