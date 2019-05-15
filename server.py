@@ -74,12 +74,34 @@ async def blacklist_song(payload: Payload):
 
 @app.get("/add/")
 async def add_song(payload: Payload):
-    pass
+    fetchvids.start(payload.url)
+    tagger.start()
+    drive = DriveHandler()
+    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
 
 
 @app.post("/playlist")
 async def add_playlist(payload: Payload):
-    pass
+    if db.add_to_playlists(payload.url) is None:
+        return {
+            'message': 'Playlist already exists'
+        }
+
+    return {
+        'message': 'Success'
+    }
+
+
+@app.post("/remove/playlist")
+async def delete_playlist(payload: Payload):
+    if db.remove_from_playlists_with_url(payload.url) is None:
+        return {
+            'message': f"{payload.url} doesn't exist in the playlist database"
+        }
+
+    return {
+        'message': 'Success'
+    }
 
 
 if __name__ == "__main__":

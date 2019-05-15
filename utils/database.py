@@ -2,14 +2,16 @@ from typing import List, Dict, Optional
 
 import pymongo
 from pymongo import database
+from pymongo.collection import Collection
 
 from models import DatabaseOptions
 from utils.text_processing import calculate_similarity
 
 
 class DatabaseHandler:
-    blacklist_collection: pymongo.collection
-    download_collection: pymongo.collection
+    playlist_collection: Collection
+    blacklist_collection: Collection
+    download_collection: Collection
     database: pymongo.database.Database
     client: pymongo.MongoClient
 
@@ -19,9 +21,10 @@ class DatabaseHandler:
         self.database.authenticate(options.database_user, options.database_password)
         self.download_collection = self.database["downloaded"]
         self.blacklist_collection = self.database["blacklist"]
+        self.playlist_collection = self.database["playlists"]
 
     @staticmethod
-    def search_collection_by_name(name: str, collection: pymongo.collection):
+    def search_collection_by_name(name: str, collection: Collection):
         downloaded_songs: List[Dict[str, str]] = list(collection.find({}))
 
         search_result: List[Dict[str, Optional[str]]] = []
@@ -43,7 +46,7 @@ class DatabaseHandler:
         return search_result
 
     @staticmethod
-    def check_if_url_exists(url: str, collection: pymongo.collection) -> bool:
+    def check_if_url_exists(url: str, collection: Collection) -> bool:
         cursor: pymongo.cursor = collection.find({
             'url': url
         })
@@ -52,21 +55,20 @@ class DatabaseHandler:
 
         return not (len(documents) < 1)
 
-    # def add_to_downloaded(self, url: str, name: str):
-    #     if self.check_if_url_exists(url, self.download_collection):
-    #         return
-    #
-    #     self.download_collection.insert_one({
-    #         'url': url,
-    #         'name': name
-    #     })
-
     def add_to_blacklist(self, url: str):
         if self.check_if_url_exists(url, self.blacklist_collection):
             return
 
         self.blacklist_collection.insert_one({
-            'url': url,
+            'url': url
+        })
+
+    def add_to_playlists(self, url: str):
+        if self.check_if_url_exists(url, self.playlist_collection):
+            return
+
+        self.playlist_collection.insert_one({
+            'url': url
         })
 
     def add_many_to_blacklist(self, urls: List[str]):
@@ -114,18 +116,19 @@ class DatabaseHandler:
             'url': url
         })
 
-    # @staticmethod
-    # def check_if_name_exists(name: str, collection: pymongo.collection) -> bool:
-    #     cursor: pymongo.cursor = collection.find({
-    #         'name': name
-    #     })
-    #
-    #     documents: List[Dict[str, str]] = list(cursor)
-    #
-    #     return not (len(documents) < 1)
+    def remove_from_playlists_with_url(self, url: str):
+        if not self.check_if_url_exists(url, self.playlist_collection):
+            return
+
+        self.playlist_collection.delete_many({
+            'url': url
+        })
 
     def get_all_blacklist_urls(self) -> List[str]:
         return [element['url'] for element in self.blacklist_collection.find({})]
 
     def get_all_downloaded_urls(self) -> List[str]:
         return [element['url'] for element in self.download_collection.find({})]
+
+    def get_all_playlist_urls(self) -> List[str]:
+        return [element['url'] for element in self.playlist_collection.find({})]
