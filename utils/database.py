@@ -1,9 +1,10 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import pymongo
 from pymongo import database
 
 from models import DatabaseOptions
+from utils.text_processing import calculate_similarity
 
 
 class DatabaseHandler:
@@ -65,14 +66,29 @@ class DatabaseHandler:
         if result is None:
             print("Trying to update something that doesn't exist")
 
-    def add_to_blacklist(self, url: str, name: str):
+    def add_to_blacklist(self, url: str):
         if self.check_if_url_exists(url, self.blacklist_collection):
             return
 
         self.blacklist_collection.insert_one({
             'url': url,
-            'name': name
         })
+
+    @staticmethod
+    def search_collection_by_name(name: str, collection: pymongo.collection):
+        downloaded_songs: List[Dict[str, str]] = list(collection.find({}))
+
+        search_result: List[Dict[str, Optional[str]]] = []
+        for song in downloaded_songs:
+            if calculate_similarity(name, song['name']) >= 0.5 or (
+                    song.get("new_name") is not None and calculate_similarity(name, song['new_name']) >= 0.5):
+                search_result.append({
+                    'name': song['name'],
+                    'url': song['url'],
+                    'new_name': song.get('new_name')
+                })
+
+        return search_result
 
     def remove_from_blacklist_with_url(self, url: str):
         if not self.check_if_url_exists(url, self.blacklist_collection):
@@ -115,6 +131,3 @@ class DatabaseHandler:
 
     def get_all_downloaded_urls(self) -> List[str]:
         return [element['url'] for element in self.download_collection.find({})]
-
-    def get_all_downloaded(self) -> List[Dict[str, str]]:
-        return list(self.download_collection.find({}))

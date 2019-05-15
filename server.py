@@ -2,40 +2,35 @@ from os import getenv
 from pathlib import Path
 from typing import List, Dict
 
+import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
-import tagger
-import fetchvids
 from pydantic import BaseModel, UrlStr
 
+import fetchvids
+import tagger
 from models import DatabaseOptions
-from utils.google_drive import DriveHandler
 from utils.database import DatabaseHandler
-from dotenv import load_dotenv
+from utils.google_drive import DriveHandler
 from utils.text_processing import calculate_similarity
 
 app = FastAPI()
 
 
-class payload(BaseModel):
+class Payload(BaseModel):
     url: UrlStr
-
-
-def get_database_object():
-    return DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"), database_password=getenv("MONGO_PASS"),
-                                           database_uri=getenv("MONGO_URI"), database_name=getenv("DB_NAME"),
-                                           port=getenv("DB_PORT")))
+    name: str = None
 
 
 @app.get("/")
 async def test():
     return {
-        "message": "success"
+        "message": "success",
     }
 
 
 @app.get("/update")
 async def update_db():
-    load_dotenv()
     fetchvids.start()
     tagger.start()
     drive = DriveHandler()
@@ -44,17 +39,7 @@ async def update_db():
 
 @app.get("/search/{name}")
 async def search(name: str):
-    load_dotenv()
-    db = get_database_object()
-    downloaded_songs: List[Dict[str, str]] = db.get_all_downloaded()
-
-    search_result: List[Dict[str, str]] = []
-    for song in downloaded_songs:
-        if calculate_similarity(name, song['name']) >= 0.5 or (song.get("new_name") is not None and calculate_similarity(name, song['new_name']) >= 0.5):
-            search_result.append({
-                'name': song['name'],
-                'url': song['url']
-            })
+    search_result = db.search_collection_by_name(name, db.download_collection)
 
     return {
         'message': 'No result matched' if len(search_result) == 0 else 'Success',
@@ -62,16 +47,28 @@ async def search(name: str):
     }
 
 
-@app.get("/remove/{url}")
-async def remove_song(url: str):
-    pass
+@app.post("/remove")
+async def remove_from_blacklist(payload: Payload):
+    if payload.name is not None:
+        search_result = db.search_collection_by_name(payload.name, db.blacklist_collection)
+        db.remove_from_blacklist_with_name(search_result[])
 
 
-@app.get("/blacklist/{url}")
-async def blacklist_song(url: str):
-    pass
+
+@app.post("/blacklist")
+async def blacklist_song(payload: Payload):
+    db.add_to_blacklist(payload.url)
 
 
 @app.get("/add/{url}")
 async def add_song(url: str):
     pass
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    db = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"), database_password=getenv("MONGO_PASS"),
+                                           database_uri=getenv("MONGO_URI"), database_name=getenv("DB_NAME"),
+                                           port=getenv("DB_PORT")))
+
+    uvicorn.run(app, host="0.0.0.0", port=int(getenv("PORT")) if getenv("PORT") is not None else 8000)
