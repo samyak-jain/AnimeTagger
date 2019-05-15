@@ -1,25 +1,26 @@
 from os import getenv
 from pathlib import Path
-from typing import List, Dict
+from typing import Optional
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, UrlStr
+from starlette.middleware.cors import CORSMiddleware
 
 import fetchvids
 import tagger
 from models import DatabaseOptions
 from utils.database import DatabaseHandler
 from utils.google_drive import DriveHandler
-from utils.text_processing import calculate_similarity
 
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
 
 class Payload(BaseModel):
     url: UrlStr
-    name: str = None
+    name: Optional[str] = None
 
 
 @app.get("/")
@@ -51,8 +52,19 @@ async def search(name: str):
 async def remove_from_blacklist(payload: Payload):
     if payload.name is not None:
         search_result = db.search_collection_by_name(payload.name, db.blacklist_collection)
-        db.remove_from_blacklist_with_name(search_result[])
+        best_result = max(search_result, key=lambda element: element['similarity'])
+        url_to_remove = best_result['url']
+        details = best_result
+    else:
+        url_to_remove = payload.url
+        details = None
 
+    db.remove_from_blacklist_with_url(url_to_remove)
+
+    return {
+        'message': f"Removed result {url_to_remove}",
+        'details': details
+    }
 
 
 @app.post("/blacklist")
@@ -60,15 +72,21 @@ async def blacklist_song(payload: Payload):
     db.add_to_blacklist(payload.url)
 
 
-@app.get("/add/{url}")
-async def add_song(url: str):
+@app.get("/add/")
+async def add_song(payload: Payload):
+    pass
+
+
+@app.post("/playlist")
+async def add_playlist(payload: Payload):
     pass
 
 
 if __name__ == "__main__":
     load_dotenv()
     db = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"), database_password=getenv("MONGO_PASS"),
-                                           database_uri=getenv("MONGO_URI"), database_name=getenv("DB_NAME"),
-                                           port=getenv("DB_PORT")))
+                                         database_uri=getenv("MONGO_URI"), database_name=getenv("DB_NAME"),
+                                         port=getenv("DB_PORT")))
 
-    uvicorn.run(app, host="0.0.0.0", port=int(getenv("PORT")) if getenv("PORT") is not None else 8000)
+    env_port = getenv("PORT")
+    uvicorn.run(app, host="0.0.0.0", port=int(env_port) if env_port is not None else 8000)

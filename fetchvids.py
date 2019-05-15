@@ -78,10 +78,10 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         db.add_many_to_blacklist(urls_to_be_blacklisted)
 
     if len(downloaded_songs) > 0:
-        db.add_many_to_collection(download_urls, download_names, db.download_collection)
+        db.add_many_to_downloaded(download_urls, download_names)
 
 
-def start():
+def start(playlists: bool = True):
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
