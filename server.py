@@ -33,10 +33,8 @@ async def test():
 
 @app.get("/update")
 async def update_db():
-    # fetchvids.start()
-    # tagger.start(Path("./music"))
-    task = subprocess.Popen(["python", "fetchvids.py", "&&", "python", "tagger.py", "./music"])
-    task.wait()
+    fetchvids.start()
+    tagger.start(Path("./music"))
     print("Done tagging")
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))

@@ -39,7 +39,8 @@ class DriveHandler:
             'parents': [{
                 'kind': 'drive#childList',
                 'id': parent_id
-            }]
+            }],
+            'title': str(file_path.name)
         })
         file.SetContentFile(str(file_path.absolute()))
         file.Upload()

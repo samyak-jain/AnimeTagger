@@ -14,5 +14,6 @@ RUN poetry config settings.virtualenvs.create false
 RUN poetry install 
 RUN unzip dist/*
 RUN cd pyacoustid && python setup.py install
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 CMD ["python", "server.py"]
