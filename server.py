@@ -1,4 +1,4 @@
-import subprocess
+import threading
 from os import getenv
 from pathlib import Path
 from typing import Optional
@@ -24,6 +24,15 @@ class Payload(BaseModel):
     name: Optional[str] = None
 
 
+def full_update():
+    print("Starting")
+    fetchvids.start()
+    tagger.start(Path("./music"))
+    print("Done tagging")
+    drive = DriveHandler()
+    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+
+
 @app.get("/")
 async def test():
     return {
@@ -33,11 +42,8 @@ async def test():
 
 @app.get("/update")
 async def update_db():
-    fetchvids.start()
-    tagger.start(Path("./music"))
-    print("Done tagging")
-    drive = DriveHandler()
-    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+    task = threading.Thread(target=full_update)
+    task.start()
 
     return {
         'message': 'success'
