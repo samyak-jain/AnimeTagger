@@ -1,6 +1,7 @@
 import threading
 from os import getenv
 from pathlib import Path
+from time import sleep
 from typing import Optional
 
 import uvicorn
@@ -42,8 +43,15 @@ async def test():
 
 @app.get("/update")
 async def update_db():
-    task = threading.Thread(target=full_update)
-    task.start()
+    print("test1")
+    global gtask
+    if gtask.is_alive():
+        return {
+            'message': 'already running'
+        }
+
+    gtask = threading.Thread(target=full_update)
+    gtask.start()
 
     return {
         'message': 'success'
@@ -126,6 +134,8 @@ if __name__ == "__main__":
 
     db = DatabaseHandler(DatabaseOptions(database_user=mongo_user, database_password=mongo_pass, database_uri=mongo_uri,
                                          database_name=db_name, port=db_port))
+
+    gtask = threading.Thread(target=full_update)
 
     env_port = getenv("PORT")
     uvicorn.run(app, host="0.0.0.0", port=int(env_port) if env_port is not None else 8000)
