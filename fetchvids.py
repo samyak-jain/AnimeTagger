@@ -100,7 +100,7 @@ def start(vid: Optional[str] = None):
     else:
         vid_list = [vid]
 
-    download_vids(Path("./music"), vid_list, database, 10)
+    download_vids(Path("./music"), vid_list, database)
 
 
 if __name__ == "__main__":
