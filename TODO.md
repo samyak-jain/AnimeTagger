@@ -1,8 +1,9 @@
 - Add continuos integration
 - Add logging
 - Add Documentation
-- Write DockerFile
 - Use date metadata
 - Maybe use different construction algorithm for japanese?
 - Add timeout and rollback capabilities
 - Update tags after file modification
+- Take care of file path in deployment
+- Extend heroku timeout
