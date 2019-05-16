@@ -1,3 +1,4 @@
+import subprocess
 from os import getenv
 from pathlib import Path
 from typing import Optional
@@ -32,10 +33,17 @@ async def test():
 
 @app.get("/update")
 async def update_db():
-    fetchvids.start()
-    tagger.start(Path("./music"))
+    # fetchvids.start()
+    # tagger.start(Path("./music"))
+    task = subprocess.Popen(["python", "fetchvids.py", "&&", "python", "tagger.py", "./music"])
+    task.wait()
+    print("Done tagging")
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+
+    return {
+        'message': 'success'
+    }
 
 
 @app.get("/search/{name}")

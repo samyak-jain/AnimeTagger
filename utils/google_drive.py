@@ -55,7 +55,7 @@ class DriveHandler:
         file_list = self.get_list(parent_id)
 
         for file in file_list:
-            if file['name'] not in file_names:
+            if file['title'] not in file_names:
                 file_to_be_deleted = self.drive.CreateFile({
                     'id': file['id']
                 })
