@@ -72,6 +72,9 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     downloaded_songs: List[Tuple[str, str]] = [(url, output) for url, output in outputs
                                                if output is not None and url not in urls_to_be_blacklisted]
 
+    if len(downloaded_songs) < 1:
+        return 
+
     download_urls, download_names = zip(*downloaded_songs)
 
     if len(urls_to_be_blacklisted) > 0:
