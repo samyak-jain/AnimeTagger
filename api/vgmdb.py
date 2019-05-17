@@ -1,11 +1,12 @@
 import asyncio
+import json
 import urllib.parse
 from asyncio import Task
 from typing import List, Optional, Dict, Any, Tuple
 
 import requests
 from aiohttp import ClientSession
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, retry_if_result
 
 from api import API
 from models import Song
@@ -20,8 +21,8 @@ class VGMDB(API):
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}/{user_query}?format=json", session))
 
-    @retry(stop=stop_after_attempt(2))
-    def album_request(self, album_code: str) -> Dict[str, str]:
+    @retry(stop=stop_after_attempt(2), retry_error_callback=lambda state: None)
+    def album_request(self, album_code: str) -> Optional[Dict[str, str]]:
         return requests.get(f"{self.BASE_URL}/{album_code}?format=json").json()
 
     def album(self, response_list: List[Optional[Dict[str, Any]]], initial_query: str, best_similarity: float) \
@@ -47,6 +48,8 @@ class VGMDB(API):
                 album_code: str = album["link"]
                 try:
                     album_details: Dict[str, Any] = self.album_request(album_code)
+                    if album_details is None:
+                        continue
                 except requests.exceptions.ChunkedEncodingError:
                     print("Bad Url")
                     continue
