@@ -41,6 +41,11 @@ def add_one(payload: Payload):
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
 
 
+@app.head("/")
+async def ping():
+    pass
+
+
 @app.get("/")
 async def test():
     return {
