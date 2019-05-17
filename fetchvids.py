@@ -76,12 +76,13 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         return 
 
     download_urls, download_names = zip(*downloaded_songs)
+    clean_download_names = [name.rstrip() for name in download_names]
 
     if len(urls_to_be_blacklisted) > 0:
         db.add_many_to_blacklist(urls_to_be_blacklisted)
 
     if len(downloaded_songs) > 0:
-        db.add_many_to_downloaded(download_urls, download_names)
+        db.add_many_to_downloaded(download_urls, clean_download_names)
 
 
 def start(vid: Optional[str] = None):

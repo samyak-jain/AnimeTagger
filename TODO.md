@@ -7,3 +7,5 @@
 - Update tags after file modification
 - Take care of file path in deployment
 - Extend heroku timeout
+- Use similarity now with just name but also with all metadata
+- Look into trying to update something that doesn't exist

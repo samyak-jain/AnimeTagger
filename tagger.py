@@ -194,7 +194,7 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
     audio_file.tag.save()
 
     # Rename the file so that it matches the title
-    db.update_downloaded(song, remove_slashes(audio_file.tag.title))
+    db.update_downloaded(song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip())
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
     # Remove old files
@@ -231,7 +231,9 @@ def start(path_dir: Optional[Path] = None):
 
     assert isinstance(path_name, Path)
     files = os.listdir(str(path_name))
-    for file in files:
+    total_files = len(files)
+    for number, file in enumerate(files):
+        print(f"File NO: {number}/{total_files}")
         print(f"{file} is being processed")
         tag_song(path_name, file, api_list, database)
 
