@@ -144,6 +144,19 @@ async def delete_downloaded():
     db.download_collection.delete_many({})
 
 
+@app.get("/check")
+async def check_upload_state():
+    global gtask
+    if gtask.is_alive():
+        return {
+            'message': 'already running'
+        }
+
+    return {
+        'message': 'not running'
+    }
+
+
 if __name__ == "__main__":
     load_dotenv()
     mongo_user, mongo_pass, mongo_uri, db_name, db_port = getenv("MONGO_USER"), getenv("MONGO_PASS"), \
