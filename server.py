@@ -1,7 +1,6 @@
 import threading
 from os import getenv
 from pathlib import Path
-from time import sleep
 from typing import Optional
 
 import uvicorn
@@ -30,6 +29,14 @@ def full_update():
     fetchvids.start()
     tagger.start(Path("./music"))
     print("Done tagging")
+    drive = DriveHandler()
+    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+    print("DONE")
+
+
+def add_one(payload: Payload):
+    fetchvids.start(payload.url)
+    tagger.start(Path("./music"))
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
 
@@ -94,10 +101,18 @@ async def blacklist_song(payload: Payload):
 
 @app.post("/add")
 async def add_song(payload: Payload):
-    fetchvids.start(payload.url)
-    tagger.start(Path("./music"))
-    drive = DriveHandler()
-    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+    global gtask
+    if gtask.is_alive():
+        return {
+            'message': 'already running'
+        }
+
+    gtask = threading.Thread(target=add_one, args=(payload, ))
+    gtask.start()
+
+    return {
+        'message': 'success'
+    }
 
 
 @app.post("/playlist")

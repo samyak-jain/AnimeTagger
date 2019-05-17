@@ -13,6 +13,7 @@ from aiohttp import ClientSession
 from dotenv import load_dotenv
 from eyed3.id3 import TagFile
 from eyed3.mp3 import Mp3AudioFile
+from pathos.multiprocessing import ThreadPool
 from tqdm import tqdm
 
 from api import API
@@ -96,27 +97,32 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     else:
         iterate_over = range(initial_length - 1, -1, -1)
 
+    final_query_list: List[List[str]] = []
     for length in iterate_over:
-        for pos, api_tag in enumerate(api_list):
-            async_result = asyncio.run(query_databases(query, longest_query, api_tag, best_similarity))
-
-            if async_result is not None:
-                current_sim, result = async_result
-
-                if result is not None:
-                    if current_sim > best_similarity:
-                        best_result = result
-
-                    best_similarity = current_sim
-                    if best_similarity > 0.8:
-                        return best_result
-
+        final_query_list.extend(longest_query)
         longest_query = get_all_possible_subs(filtered_query, length)
+
+    for api_tag in api_list:
+        async_result = asyncio.run(query_databases(query, final_query_list, api_tag, best_similarity))
+
+        if async_result is not None:
+            current_sim, result = async_result
+
+            if result is not None:
+                if current_sim > best_similarity:
+                    best_result = result
+
+                best_similarity = current_sim
+                if best_similarity > 0.8:
+                    return best_result
 
     return best_result
 
 
-def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
+def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler, number: int):
+    print(f"File NO: {number}")
+    print(f"{song} is being processed")
+
     audio_file: Union[Mp3AudioFile, TagFile, None] = eyed3.load(str(path / song))
     assert audio_file is not None
     if isinstance(audio_file, TagFile):
@@ -208,6 +214,7 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler):
         'album art': metadata.album_art
     }
     print(f"{song} will now have the metadata: {final_metadata}")
+    print(f"{number} done")
 
 
 def start(path_dir: Optional[Path] = None):
@@ -231,11 +238,9 @@ def start(path_dir: Optional[Path] = None):
 
     assert isinstance(path_name, Path)
     files = os.listdir(str(path_name))
-    total_files = len(files)
-    for number, file in enumerate(files):
-        print(f"File NO: {number}/{total_files}")
-        print(f"{file} is being processed")
-        tag_song(path_name, file, api_list, database)
+
+    with ThreadPool() as pool:
+        pool.starmap(tag_song, [(path_name, file, api_list, database, index) for index, file in enumerate(files)])
 
 
 if __name__ == "__main__":
