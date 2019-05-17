@@ -92,7 +92,7 @@ async def blacklist_song(payload: Payload):
     db.add_to_blacklist(payload.url)
 
 
-@app.get("/add/")
+@app.post("/add")
 async def add_song(payload: Payload):
     fetchvids.start(payload.url)
     tagger.start(Path("./music"))
@@ -122,6 +122,11 @@ async def delete_playlist(payload: Payload):
     return {
         'message': 'Success'
     }
+
+
+@app.get("/delete")
+async def delete_downloaded():
+    db.download_collection.delete_many({})
 
 
 if __name__ == "__main__":
