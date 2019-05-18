@@ -8,4 +8,4 @@
 - Use similarity now with just name but also with all metadata
 - Look into trying to update something that doesn't exist
 - Add more type annotations
-- More performance improvements
+- Upload to drive parallely

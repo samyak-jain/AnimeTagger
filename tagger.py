@@ -111,24 +111,22 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     else:
         iterate_over = range(initial_length - 1, -1, -1)
 
-    final_query_list: List[List[str]] = []
     for length in iterate_over:
-        final_query_list.extend(longest_query)
+        for api_tag in api_list:
+            async_result = asyncio.run(query_databases(query, longest_query, api_tag, best_similarity))
+
+            if async_result is not None:
+                current_sim, result = async_result
+
+                if result is not None:
+                    if current_sim > best_similarity:
+                        best_result = result
+
+                    best_similarity = current_sim
+                    if best_similarity > 0.8:
+                        return best_result
+
         longest_query = get_all_possible_subs(filtered_query, length)
-
-    for api_tag in api_list:
-        async_result = asyncio.run(query_databases(query, final_query_list, api_tag, best_similarity))
-
-        if async_result is not None:
-            current_sim, result = async_result
-
-            if result is not None:
-                if current_sim > best_similarity:
-                    best_result = result
-
-                best_similarity = current_sim
-                if best_similarity > 0.8:
-                    return best_result
 
     return best_result
 
