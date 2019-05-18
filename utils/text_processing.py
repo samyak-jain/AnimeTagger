@@ -3,6 +3,7 @@ import string
 from difflib import SequenceMatcher
 from typing import List, Optional
 
+import pycld2
 from polyglot.detect import Detector, Language
 from polyglot.detect.base import UnknownLanguage
 
@@ -52,9 +53,11 @@ def detect_language(string_to_be_detected: Optional[str]) -> Optional[int]:
     if string_to_be_detected is None:
         return None
 
+    # Remove non printable characters
+    cleaned_string: str = ' '.join([char for char in string_to_be_detected if char.isprintable()])
     try:
-        detector: Detector = Detector(string_to_be_detected)
-    except UnknownLanguage:
+        detector: Detector = Detector(cleaned_string)
+    except (UnknownLanguage, pycld2.error):
         return None
 
     languages: List[Language] = detector.languages

@@ -148,6 +148,10 @@ async def delete_playlist(payload: Payload):
 async def delete_downloaded():
     db.download_collection.delete_many({})
 
+    return {
+        'message': 'delete successful'
+    }
+
 
 @app.get("/check")
 async def check_upload_state():

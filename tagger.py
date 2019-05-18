@@ -1,5 +1,6 @@
 import asyncio
 import glob
+import multiprocessing as mp
 import os
 import sys
 from asyncio.tasks import Task
@@ -13,7 +14,6 @@ from aiohttp import ClientSession
 from dotenv import load_dotenv
 from eyed3.id3 import TagFile
 from eyed3.mp3 import Mp3AudioFile
-from pathos.multiprocessing import ThreadPool
 from tqdm import tqdm
 
 from api import API
@@ -28,6 +28,20 @@ from utils.text_processing import clean_string, remove_slashes, detect_language
 
 ALBUM_DIR = "albums"
 command_line_options: Optional[CommandLineOptions] = None
+
+
+class Counter(object):
+    def __init__(self, initval=0):
+        self.val = mp.Value('i', initval)
+        self.lock = mp.Lock()
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    def value(self):
+        with self.lock:
+            return self.val.value
 
 
 async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API, best_similarity: float) \
@@ -119,7 +133,7 @@ def construct_query(query: str, api_list: List[API]) -> Optional[Song]:
     return best_result
 
 
-def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler, number: int):
+def tag_song(path: Path, song: str, api_list: List[API], number: int):
     print(f"File NO: {number}")
     print(f"{song} is being processed")
 
@@ -200,7 +214,8 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler, nu
     audio_file.tag.save()
 
     # Rename the file so that it matches the title
-    db.update_downloaded(song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip())
+    # db.update_downloaded(song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip())
+    queue.put((song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip()))
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
     # Remove old files
@@ -215,6 +230,10 @@ def tag_song(path: Path, song: str, api_list: List[API], db: DatabaseHandler, nu
     }
     print(f"{song} will now have the metadata: {final_metadata}")
     print(f"{number} done")
+
+    counter.increment()
+
+    print(f"Total {counter.value()}")
 
 
 def start(path_dir: Optional[Path] = None):
@@ -237,11 +256,24 @@ def start(path_dir: Optional[Path] = None):
     api_list: List[API] = [VGMDB(), GENIUS(os.getenv("GENIUS_TOKEN"))]
 
     assert isinstance(path_name, Path)
-    files = os.listdir(str(path_name))
+    files: List[str] = os.listdir(str(path_name))
+    total_files: int = len(files)
 
-    with ThreadPool() as pool:
-        pool.starmap(tag_song, [(path_name, file, api_list, database, index) for index, file in enumerate(files)])
+    if total_files < 1:
+        return None
+
+    cores = mp.cpu_count()
+
+    with mp.Pool(cores) as pool:
+        pool.starmap(tag_song, [(path_name, file, api_list, index) for index, file in enumerate(files)])
+
+    results = queue.get()
+    print(list(results))
+    for result in results:
+        database.update_downloaded(*result)
 
 
 if __name__ == "__main__":
+    counter = Counter(0)
+    queue: mp.Queue = mp.Queue()
     start()

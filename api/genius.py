@@ -13,11 +13,14 @@ from utils.text_processing import clean_string, calculate_similarity
 
 class GENIUS(API):
     def __init__(self, token: Optional[str]):
+        self.token = token
         self.BASE_URL = "https://api.genius.com"
 
-        assert token is not None
-        self.SEARCH_URL = f"{self.BASE_URL}/search?access_token={token}"
-        self.SONG_URL = lambda api: f"{self.BASE_URL}{api}?access_token={token}"
+        assert self.token is not None
+        self.SEARCH_URL = f"{self.BASE_URL}/search?access_token={self.token}"
+
+    def get_song_url(self, api):
+        return f"{self.BASE_URL}{api}?access_token={self.token}"
 
     def query(self, user_query: str, session: ClientSession) -> Task:
         return asyncio.create_task(self.fetch(f"{self.SEARCH_URL}&q={user_query}", session))
@@ -59,7 +62,7 @@ class GENIUS(API):
                     print(song_result.get("title"))
                     print(song_result["api_path"])
                     api_path = song_result["api_path"]
-                    api_result: Dict[str, Any] = requests.get(self.SONG_URL(api_path)).json()
+                    api_result: Dict[str, Any] = requests.get(self.get_song_url(api_path)).json()
                     if api_result is None:
                         continue
 

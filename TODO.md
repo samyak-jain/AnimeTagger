@@ -3,8 +3,9 @@
 - Add Documentation
 - Use date metadata
 - Maybe use different construction algorithm for japanese?
-- Add timeout and rollback capabilities
+- Add timeout
 - Update tags after file modification
 - Use similarity now with just name but also with all metadata
 - Look into trying to update something that doesn't exist
 - Add more type annotations
+- More performance improvements

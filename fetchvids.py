@@ -29,8 +29,9 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     already_downloaded_list: List[str] = list(db.get_all_downloaded_urls())
     urls_to_be_blacklisted: List[str] = []
     number_of_vids_downloaded: int = 0
+    process: List[Popen] = []
+    downloading_url_list: List[str] = []
 
-    outputs: List[Tuple[str, str]] = []
     for url in url_list:
         if url in blacklist_urls:
             print(f"Not executing url {url} since it is in blacklist")
@@ -61,11 +62,14 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
 
         x = subprocess.Popen(["sh", str(Path.cwd() / "scripts/download_vids.sh"), url,
                               str(download_path.absolute()) + "/%(title)s.%(ext)s"], stdout=PIPE)
-        x.wait()
-        test = x.stdout.read().decode('utf-8')
-        outputs.append((url, test))
 
+        process.append(x)
         number_of_vids_downloaded += 1
+        downloading_url_list.append(url)
+
+    waiting = [p.wait() for p in process]
+    names = [p.stdout.read().decode('utf-8') for p in process]
+    outputs = list(zip(downloading_url_list, names))
 
     print(f"Added songs {outputs}")
 
@@ -104,7 +108,7 @@ def start(vid: Optional[str] = None):
     else:
         vid_list = [vid]
 
-    download_vids(Path("./music"), vid_list, database)
+    download_vids(Path("./music"), vid_list, database, 5)
 
 
 if __name__ == "__main__":
