@@ -24,9 +24,9 @@ class Payload(BaseModel):
     name: Optional[str] = None
 
 
-def full_update():
+def full_update(num: Optional[int]):
     print("Starting")
-    fetchvids.start()
+    fetchvids.start(number=num)
     tagger.start(Path("./music"))
     print("Done tagging")
     drive = DriveHandler()
@@ -53,8 +53,8 @@ async def test():
     }
 
 
-@app.get("/update")
-async def update_db():
+@app.get("/update/{number}")
+async def update_db(number: Optional[int] = None):
     print("test1")
     global gtask
     if gtask.is_alive():
@@ -62,7 +62,7 @@ async def update_db():
             'message': 'already running'
         }
 
-    gtask = threading.Thread(target=full_update)
+    gtask = threading.Thread(target=full_update, args=(number, ))
     gtask.start()
 
     return {

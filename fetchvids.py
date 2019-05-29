@@ -89,7 +89,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         db.add_many_to_downloaded(download_urls, clean_download_names)
 
 
-def start(vid: Optional[str] = None):
+def start(vid: Optional[str] = None, number: Optional[int] = None):
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
@@ -108,7 +108,7 @@ def start(vid: Optional[str] = None):
     else:
         vid_list = [vid]
 
-    download_vids(Path("./music"), vid_list, database)
+    download_vids(Path("./music"), vid_list, database, number)
 
 
 if __name__ == "__main__":
