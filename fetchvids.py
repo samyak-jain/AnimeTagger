@@ -1,3 +1,4 @@
+import os
 import subprocess
 from os import getenv
 from pathlib import Path
@@ -29,7 +30,6 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     already_downloaded_list: List[str] = list(db.get_all_downloaded_urls())
     urls_to_be_blacklisted: List[str] = []
     number_of_vids_downloaded: int = 0
-    process: List[Popen] = []
     downloading_url_list: List[str] = []
 
     for url in url_list:
@@ -60,15 +60,19 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         if number_of_vids_downloaded >= max_number:
             break
 
-        x = subprocess.Popen(["sh", str(Path.cwd() / "scripts/download_vids.sh"), url,
-                              str(download_path.absolute()) + "/%(title)s.%(ext)s"], stdout=PIPE)
-
-        process.append(x)
         number_of_vids_downloaded += 1
         downloading_url_list.append(url)
 
-    waiting = [p.wait() for p in process]
-    names = [p.stdout.read().decode('utf-8') for p in process]
+    batch_path = Path(Path.cwd() / "batch_file.txt")
+    with open(batch_path, "w") as f:
+        f.write('\n'.join(downloading_url_list))
+
+    download = subprocess.Popen(["sh", "scripts/download_vids.sh", str(batch_path), str(download_path.absolute()) +
+                                 "/%(title)s.%(ext)s"], stdout=PIPE)
+
+    os.remove(batch_path)
+
+    names: List[str] = download.stdout.read().decode('utf-8').split('\n')
     outputs = list(zip(downloading_url_list, names))
 
     print(f"Added songs {outputs}")

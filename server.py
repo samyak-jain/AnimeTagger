@@ -54,7 +54,7 @@ async def test():
 
 
 @app.get("/update")
-async def update_db(number: Optional[int] = None):
+async def update_db(number: int = None):
     print("test1")
     global gtask
     if gtask.is_alive():
