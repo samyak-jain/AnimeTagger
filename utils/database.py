@@ -5,7 +5,7 @@ from pymongo import database
 from pymongo.collection import Collection
 
 from models import DatabaseOptions
-from utils.text_processing import calculate_similarity
+from utils.text_processing import calculate_similarity, clean_string
 
 
 class DatabaseHandler:
@@ -103,10 +103,15 @@ class DatabaseHandler:
         ])
 
     def update_downloaded(self, old_name: str, new_name: str):
-        result = self.download_collection.find_one_and_update({'name': old_name}, {'$set': {'new_name': new_name}})
+        downloads = self.download_collection.find({})
+        for download in downloads:
+            if clean_string(old_name) == clean_string(download['name']):
+                result = self.download_collection.find_one_and_update({'_id': download['_id']}, {'$set': {'new_name': new_name}})
 
-        if result is None:
-            print("Trying to update something that doesn't exist")
+                if result is not None:
+                    return
+
+        print("Trying to update something that doesn't exist")
 
     def remove_from_blacklist_with_url(self, url: str):
         if not self.check_if_url_exists(url, self.blacklist_collection):

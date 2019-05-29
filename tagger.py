@@ -24,10 +24,7 @@ from models import Song, CommandLineOptions, DatabaseOptions
 from utils.console import command_line_parser
 from utils.database import DatabaseHandler
 from utils.image_handler import download_image
-from utils.text_processing import clean_string, remove_slashes, detect_language
-
-ALBUM_DIR = "albums"
-command_line_options: Optional[CommandLineOptions] = None
+from utils.text_processing import clean_string, remove_slashes, detect_language, remove_punctuation
 
 
 class Counter(object):
@@ -42,6 +39,12 @@ class Counter(object):
     def value(self):
         with self.lock:
             return self.val.value
+
+
+ALBUM_DIR = "albums"
+command_line_options: Optional[CommandLineOptions] = None
+counter = Counter(0)
+queue: mp.Queue = mp.Queue()
 
 
 async def query_databases(initial_query: str, query_list: List[List[str]], query_api: API, best_similarity: float) \
@@ -199,20 +202,20 @@ def tag_song(path: Path, song: str, api_list: List[API], number: int):
     audio_file.tag.album = metadata.album_name
 
     os.makedirs(ALBUM_DIR, exist_ok=True)
-    img_path: str = f"{ALBUM_DIR}/{remove_slashes(audio_file.tag.title)}.jpg"
+    audio_tag_filename: str = remove_punctuation(remove_slashes(audio_file.tag.title)).replace(' ', '_')
+    img_path: Path = Path(f"{ALBUM_DIR}/{audio_tag_filename}.jpg")
 
     # Save all the changes to the tags
     if metadata.album_art is not None:
         download_image(metadata.album_art, img_path)
-        with open(img_path, "rb") as img:
+        print(str(img_path.absolute()))
+        with open(str(img_path.absolute()), "rb") as img:
             imgdata = img.read()
             audio_file.tag.images.set(3, imgdata, "image/jpg", metadata.album_name)
 
-        rmtree(ALBUM_DIR)
     audio_file.tag.save()
 
     # Rename the file so that it matches the title
-    # db.update_downloaded(song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip())
     queue.put((song[:-4].rstrip(), remove_slashes(audio_file.tag.title).rstrip()))
     os.rename(str(path / song), str(path / f"{remove_slashes(audio_file.tag.title)}.mp3"))
 
@@ -265,13 +268,20 @@ def start(path_dir: Optional[Path] = None):
     with mp.Pool(cores) as pool:
         pool.starmap(tag_song, [(path_name, file, api_list, index) for index, file in enumerate(files)])
 
-    results = queue.get()
-    print(list(results))
+    rmtree(ALBUM_DIR)
+    queue.put("DONE")
+
+    results = []
+    while True:
+        result = queue.get()
+        if result == "DONE":
+            break
+
+        results.append(result)
+
     for result in results:
         database.update_downloaded(*result)
 
 
 if __name__ == "__main__":
-    counter = Counter(0)
-    queue: mp.Queue = mp.Queue()
     start()
