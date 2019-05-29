@@ -53,7 +53,7 @@ async def test():
     }
 
 
-@app.get("/update/{number}")
+@app.get("/update")
 async def update_db(number: Optional[int] = None):
     print("test1")
     global gtask
