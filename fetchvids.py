@@ -70,11 +70,9 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     download = subprocess.Popen(["sh", "scripts/download_vids.sh", str(batch_path), str(download_path.absolute()) +
                                  "/%(title)s.%(ext)s"], stdout=PIPE)
 
-    os.remove(batch_path)
-
     names: List[str] = download.stdout.read().decode('utf-8').split('\n')
     outputs = list(zip(downloading_url_list, names))
-
+    os.remove(batch_path)
     print(f"Added songs {outputs}")
 
     downloaded_songs: List[Tuple[str, str]] = [(url, output) for url, output in outputs
