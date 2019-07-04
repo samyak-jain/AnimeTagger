@@ -6,6 +6,7 @@ from pymongo.collection import Collection
 
 from models import DatabaseOptions
 from utils.text_processing import calculate_similarity, clean_string
+from bson.objectid import ObjectId
 
 
 class DatabaseHandler:
@@ -41,16 +42,16 @@ class DatabaseHandler:
                     'url': song['url'],
                     'new_name': song.get('new_name'),
                     'similarity': similarity,
-                    'id': song['_id']
+                    'id': str(song['_id'])
                 })
 
         return search_result
 
     def get_download_by_id(self, oid: str):
-        return self.download_collection.find({"_id": oid})
+        return self.download_collection.find_one({"_id": ObjectId(oid)})
 
     def delete_from_downloaded(self, oid: str):
-        self.download_collection.delete_one({"_id": oid})
+        self.download_collection.delete_one({"_id": ObjectId(oid)})
 
     @staticmethod
     def check_if_url_exists(url: str, collection: Collection) -> bool:

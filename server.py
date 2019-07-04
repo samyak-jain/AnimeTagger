@@ -159,6 +159,7 @@ async def delete_downloaded():
 @app.get("/delete/{id}")
 async def delete_song(oid: str, blacklist: bool = False):
     to_be_deleted: Dict[str, str] = db.get_download_by_id(oid)
+    print(to_be_deleted)
     drive = DriveHandler()
     if to_be_deleted.get("new_name") is not None:
         file_name = to_be_deleted["new_name"]

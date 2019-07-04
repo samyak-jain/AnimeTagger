@@ -19,7 +19,7 @@ class DriveHandler:
         file_list = self.get_list(parent_id)
 
         for file in file_list:
-            if file['title'] == file_name:
+            if file['title'] == f"{file_name}.mp3":
                 return file['id']
 
         return None
