@@ -3,7 +3,7 @@ import shutil
 import threading
 from os import getenv
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 import uvicorn
 from dotenv import load_dotenv
@@ -24,16 +24,14 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'])
 class Payload(BaseModel):
     url: UrlStr
     name: Optional[str] = None
+    id: Optional[str] = None
 
 
 def full_update(num: Optional[int]):
-    print("Starting")
     fetchvids.start(number=num)
     tagger.start(Path("./music"))
-    print("Done tagging")
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
-    print("DONE")
     shutil.rmtree("./music")
     os.makedirs("./music")
 
@@ -61,7 +59,6 @@ async def test():
 
 @app.get("/update")
 async def update_db(number: int = None):
-    print("test1")
     global gtask
     if gtask.is_alive():
         return {
@@ -156,6 +153,26 @@ async def delete_downloaded():
 
     return {
         'message': 'delete successful'
+    }
+
+
+@app.get("/delete/{id}")
+async def delete_song(oid: str, blacklist: bool = False):
+    to_be_deleted: Dict[str, str] = db.get_download_by_id(oid)
+    drive = DriveHandler()
+    if to_be_deleted.get("new_name") is not None:
+        file_name = to_be_deleted["new_name"]
+    else:
+        file_name = to_be_deleted["name"]
+
+    drive.delete_file(file_name, getenv("MUSIC_DRIVE_ID"))
+    db.delete_from_downloaded(oid)
+
+    if blacklist:
+        db.add_to_blacklist(to_be_deleted["url"])
+
+    return {
+        'message': 'Success'
     }
 
 

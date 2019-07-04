@@ -40,10 +40,17 @@ class DatabaseHandler:
                     'name': song['name'],
                     'url': song['url'],
                     'new_name': song.get('new_name'),
-                    'similarity': similarity
+                    'similarity': similarity,
+                    'id': song['_id']
                 })
 
         return search_result
+
+    def get_download_by_id(self, oid: str):
+        return self.download_collection.find({"_id": oid})
+
+    def delete_from_downloaded(self, oid: str):
+        self.download_collection.delete_one({"_id": oid})
 
     @staticmethod
     def check_if_url_exists(url: str, collection: Collection) -> bool:

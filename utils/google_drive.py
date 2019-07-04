@@ -26,14 +26,7 @@ class DriveHandler:
 
     def upload_file(self, file_path: Path, parent_id: str):
         print(f"Uploading {file_path.name}")
-        search_result = self.search_file(file_path.name, parent_id)
-
-        if search_result is not None:
-            file_to_be_deleted = self.drive.CreateFile({
-                'id': search_result
-            })
-
-            file_to_be_deleted.Trash()
+        self.delete_file(file_path.name, parent_id)
 
         file = self.drive.CreateFile({
             'parents': [{
@@ -53,3 +46,15 @@ class DriveHandler:
 
         for file in file_paths:
             self.upload_file(file, parent_id)
+
+    def delete_file(self, file_name: str, parent_id: str) -> bool:
+        search_result = self.search_file(file_name, parent_id)
+
+        if search_result is not None:
+            file_to_be_deleted = self.drive.CreateFile({
+                'id': search_result
+            })
+
+            file_to_be_deleted.Trash()
+
+        return bool(search_result)
