@@ -156,7 +156,7 @@ async def delete_downloaded():
     }
 
 
-@app.get("/delete/{id}")
+@app.get("/delete/{oid}")
 async def delete_song(oid: str, blacklist: bool = False):
     to_be_deleted: Dict[str, str] = db.get_download_by_id(oid)
     print(to_be_deleted)
