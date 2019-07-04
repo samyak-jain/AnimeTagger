@@ -1,3 +1,5 @@
+import os
+import shutil
 import threading
 from os import getenv
 from pathlib import Path
@@ -32,6 +34,8 @@ def full_update(num: Optional[int]):
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
     print("DONE")
+    shutil.rmtree("./music")
+    os.makedirs("./music")
 
 
 def add_one(payload: Payload):
@@ -39,6 +43,8 @@ def add_one(payload: Payload):
     tagger.start(Path("./music"))
     drive = DriveHandler()
     drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+    shutil.rmtree("./music")
+    os.makedirs("./music")
 
 
 @app.head("/")
@@ -164,6 +170,12 @@ async def check_upload_state():
     return {
         'message': 'not running'
     }
+
+
+@app.get("/rem")
+async def rem():
+    shutil.rmtree("./music")
+    os.makedirs("./music")
 
 
 if __name__ == "__main__":

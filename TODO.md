@@ -9,3 +9,6 @@
 - Look into trying to update something that doesn't exist
 - Add more type annotations
 - Upload to drive parallely
+- make proper delete function
+- sort search results with similarity
+- Add route to cancel

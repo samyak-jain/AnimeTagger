@@ -51,17 +51,5 @@ class DriveHandler:
             if file.is_file():
                 file_paths.append(file)
 
-        # file_names = [file.name for file in file_paths]
-        #
-        # file_list = self.get_list(parent_id)
-        #
-        # for file in file_list:
-        #     if file['title'] not in file_names:
-        #         file_to_be_deleted = self.drive.CreateFile({
-        #             'id': file['id']
-        #         })
-        #
-        #         file_to_be_deleted.Trash()
-
         for file in file_paths:
             self.upload_file(file, parent_id)
