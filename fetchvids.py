@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from os import getenv
 from pathlib import Path
@@ -92,7 +93,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
 
 
 def start(vid: Optional[str] = None, number: Optional[int] = None):
-    os.rmdir("./music")
+    shutil.rmtree("./music", ignore_errors=True)
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
