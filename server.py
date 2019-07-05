@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import threading
@@ -200,8 +201,13 @@ async def rem():
 @app.websocket_route("/ws_add")
 async def socket_add(websocket: WebSocket):
     await websocket.accept()
-    data = await websocket.receive_json()
-    payload: Payload = Payload(url=data["url"])
+    while True:
+        data = await websocket.receive_text()
+        if data != "echo":
+            break
+
+    json_data = json.loads(data)
+    payload: Payload = Payload(url=json_data["url"])
     print(payload)
     add_one(payload)
     print("done")
