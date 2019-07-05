@@ -1,11 +1,13 @@
 import re
 import string
 from difflib import SequenceMatcher
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pycld2
 from polyglot.detect import Detector, Language
 from polyglot.detect.base import UnknownLanguage
+from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
 
 STOPWORDS: List[str] = [
     "amv",
@@ -76,3 +78,9 @@ def calculate_similarity(str_a: str, str_b: str) -> float:
     cleaned_b: str = clean_string(str_b)
 
     return SequenceMatcher(None, cleaned_a, cleaned_b).ratio()
+
+
+def calculate_tfidf(str_a: str, list_str: List[Tuple[int, str]]) -> np.ndarray:
+    vect = TfidfVectorizer(min_df=1)
+    tfidf = vect.fit_transform([str_a] + [element[1] for element in list_str])
+    return (tfidf * tfidf.T).A[0][1:]

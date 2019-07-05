@@ -5,7 +5,7 @@ from pymongo import database
 from pymongo.collection import Collection
 
 from models import DatabaseOptions
-from utils.text_processing import calculate_similarity, clean_string
+from utils.text_processing import calculate_similarity, clean_string, calculate_tfidf
 from bson.objectid import ObjectId
 
 
@@ -27,11 +27,20 @@ class DatabaseHandler:
     @staticmethod
     def search_collection_by_name(name: str, collection: Collection):
         downloaded_songs: List[Dict[str, str]] = list(collection.find({}))
+        song_names = [(index, song["new_name"]) for index, song in enumerate(downloaded_songs) if song.get("new_name") is not None]
+        song_old_names = [(index, song["name"]) for index, song in enumerate(downloaded_songs)]
 
+        results = calculate_tfidf(name, song_names)
+        filtered_results = {index: result for index, result in enumerate(results) if result > 0.5}
+        old_results = calculate_tfidf(name, song_old_names)
+        filtered_old_results = {index: result for index, result in enumerate(old_results) if result > 0.5}
+        combined_results = set(list(filtered_old_results.keys()) + list(filtered_results.keys()))
         search_result: List[Dict[str, Optional[str]]] = []
-        for song in downloaded_songs:
 
-            if song.get("new_name") is not None:
+        for index, song in enumerate(downloaded_songs):
+            if index in combined_results:
+                similarity = max(filtered_results.get(index, 0), filtered_old_results.get(index, 0))
+            elif song.get("new_name") is not None:
                 similarity = max(calculate_similarity(name, song["new_name"]), calculate_similarity(name, song['name']))
             else:
                 similarity = calculate_similarity(name, song['name'])

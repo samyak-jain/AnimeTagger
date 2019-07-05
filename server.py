@@ -65,7 +65,7 @@ async def update_db(number: int = None):
             'message': 'already running'
         }
 
-    gtask = threading.Thread(target=full_update, args=(number, ))
+    gtask = threading.Thread(target=full_update, args=(number,))
     gtask.start()
 
     return {
@@ -115,7 +115,7 @@ async def add_song(payload: Payload):
             'message': 'already running'
         }
 
-    gtask = threading.Thread(target=add_one, args=(payload, ))
+    gtask = threading.Thread(target=add_one, args=(payload,))
     gtask.start()
 
     return {
@@ -201,8 +201,8 @@ if __name__ == "__main__":
     mongo_user, mongo_pass, mongo_uri, db_name, db_port = getenv("MONGO_USER"), getenv("MONGO_PASS"), \
                                                           getenv("MONGO_URI"), getenv("DB_NAME"), getenv("DB_PORT")
 
-    assert mongo_user is not None and mongo_pass is not None and mongo_uri is not None and db_name is not None and \
-           db_port is not None
+    assert mongo_user is not None and mongo_pass is not None and mongo_uri is not None and db_name is not None
+    assert db_port is not None
 
     db = DatabaseHandler(DatabaseOptions(database_user=mongo_user, database_password=mongo_pass, database_uri=mongo_uri,
                                          database_name=db_name, port=db_port))
