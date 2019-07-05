@@ -91,7 +91,7 @@ class GENIUS(API):
                         song_result["primary_artist"].get("name") is not None:
                     artists = song_result["primary_artist"]["name"]
 
-                    if 'genius' in clean_string(artists):
+                    if 'genius' in clean_string(artists) or 'eddie van der meer' in clean_string(artists):
                         continue
 
                 if song_result.get("header_image_url") is not None:

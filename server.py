@@ -200,8 +200,11 @@ async def rem():
 @app.websocket_route("/ws_add")
 async def socket_add(websocket: WebSocket):
     await websocket.accept()
-    payload: Payload = await websocket.receive_json()
+    data = await websocket.receive_json()
+    payload: Payload = Payload(url=data["url"])
+    print(payload)
     add_one(payload)
+    print("done")
     await websocket.send_json({
         'message': 'Success'
     })

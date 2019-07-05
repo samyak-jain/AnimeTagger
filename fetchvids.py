@@ -68,7 +68,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
         f.write('\n'.join(downloading_url_list))
 
     download = subprocess.Popen(["sh", "scripts/download_vids.sh", str(batch_path), str(download_path.absolute()) +
-                                 "/%(title)s.%(ext)s"], stdout=PIPE)
+                                 "/%(title)s.%(ext)s", "--verbose"], stdout=PIPE)
 
     names: List[str] = download.stdout.read().decode('utf-8').split('\n')
     outputs = list(zip(downloading_url_list, names))
@@ -92,6 +92,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
 
 
 def start(vid: Optional[str] = None, number: Optional[int] = None):
+    os.rmdir("./music")
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
                                                database_password=getenv("MONGO_PASS"),
