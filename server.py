@@ -16,6 +16,7 @@ import tagger
 from models import DatabaseOptions
 from utils.database import DatabaseHandler
 from utils.google_drive import DriveHandler
+from starlette.websockets import WebSocket
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=['*'])
@@ -194,6 +195,16 @@ async def check_upload_state():
 async def rem():
     shutil.rmtree("./music")
     os.makedirs("./music")
+
+
+@app.websocket_route("/ws_add")
+async def socket_add(websocket: WebSocket):
+    await websocket.accept()
+    payload: Payload = await websocket.receive_json()
+    add_one(payload)
+    await websocket.send_json({
+        'message': 'Success'
+    })
 
 
 if __name__ == "__main__":
