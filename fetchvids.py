@@ -23,7 +23,9 @@ def get_vid_list(cookie_path: Path, playlist_url: str) -> List[str]:
     return filtered_urls
 
 
-def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler, max_number: Optional[int] = None):
+def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler, max_number: Optional[int] = None) \
+        -> List[str]:
+
     if max_number is None:
         max_number = len(url_list)
 
@@ -80,7 +82,7 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
                                                if output is not None and url not in urls_to_be_blacklisted]
 
     if len(downloaded_songs) < 1:
-        return 
+        return ["Null"]
 
     download_urls, download_names = zip(*downloaded_songs)
     clean_download_names = [name.rstrip() for name in download_names]
@@ -91,8 +93,10 @@ def download_vids(download_path: Path, url_list: List[str], db: DatabaseHandler,
     if len(downloaded_songs) > 0:
         db.add_many_to_downloaded(download_urls, clean_download_names)
 
+    return clean_download_names
 
-def start(vid: Optional[str] = None, number: Optional[int] = None):
+
+def start(vid: Optional[str] = None, number: Optional[int] = None) -> List[str]:
     shutil.rmtree("./music", ignore_errors=True)
     load_dotenv()
     database = DatabaseHandler(DatabaseOptions(database_user=getenv("MONGO_USER"),
@@ -112,7 +116,7 @@ def start(vid: Optional[str] = None, number: Optional[int] = None):
     else:
         vid_list = [vid]
 
-    download_vids(Path("./music"), vid_list, database, number)
+    return download_vids(Path("./music"), vid_list, database, number)
 
 
 if __name__ == "__main__":

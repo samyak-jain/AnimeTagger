@@ -18,6 +18,7 @@ from models import DatabaseOptions
 from utils.database import DatabaseHandler
 from utils.google_drive import DriveHandler
 from starlette.websockets import WebSocket
+from pyfcm import FCMNotification
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=['*'])
@@ -25,8 +26,14 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
 class Payload(BaseModel):
     url: UrlStr
+    fcm_token: Optional[str] = None
     name: Optional[str] = None
     id: Optional[str] = None
+
+
+def send_notification(title: str, body: str, token: str):
+    push_service = FCMNotification(api_key=getenv("FCM_KEY"))
+    push_service.notify_single_device(registration_id=token, message_title=title, message_body=body)
 
 
 def full_update(num: Optional[int]):
@@ -39,12 +46,18 @@ def full_update(num: Optional[int]):
 
 
 def add_one(payload: Payload):
-    fetchvids.start(payload.url)
-    tagger.start(Path("./music"))
-    drive = DriveHandler()
-    drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
-    shutil.rmtree("./music")
-    os.makedirs("./music")
+    assert payload.fcm_token is not None
+
+    try:
+        name = fetchvids.start(payload.url)
+        tagger.start(Path("./music"))
+        drive = DriveHandler()
+        drive.copy_dir(Path("./music"), getenv("MUSIC_DRIVE_ID"))
+        shutil.rmtree("./music")
+        os.makedirs("./music")
+        send_notification("Successful", f"Added song {name[0]}", payload.fcm_token)
+    except Exception as e:
+        send_notification("Attempt unsuccessful", str(e), payload.fcm_token)
 
 
 @app.head("/")
