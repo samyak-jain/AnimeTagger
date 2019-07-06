@@ -201,7 +201,6 @@ def tag_song(path: Path, song: str, api_list: List[API], number: int):
 
     audio_file.tag.album = metadata.album_name
 
-    os.makedirs(ALBUM_DIR, exist_ok=True)
     audio_tag_filename: str = remove_punctuation(remove_slashes(audio_file.tag.title)).replace(' ', '_')
     img_path: Path = Path(f"{ALBUM_DIR}/{audio_tag_filename}.jpg")
 
@@ -240,6 +239,8 @@ def tag_song(path: Path, song: str, api_list: List[API], number: int):
 def start(path_dir: Optional[Path] = None):
     load_dotenv()
     global command_line_options
+
+    os.makedirs(ALBUM_DIR, exist_ok=True)
 
     if path_dir is None:
         command_line_options = command_line_parser(sys.argv)
