@@ -130,6 +130,8 @@ async def add_song(payload: Payload):
             'message': 'already running'
         }
 
+    print(payload)
+
     gtask = threading.Thread(target=add_one, args=(payload,))
     gtask.start()
 
